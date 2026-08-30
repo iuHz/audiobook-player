@@ -1,0 +1,1003 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="theme-color" content="#141418">
+<title>听书播放器</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  :root {
+    --bg: #141418;
+    --panel: #1e1e24;
+    --panel2: #26262e;
+    --text: #e8e8ec;
+    --text-dim: #9a9aa6;
+    --accent: #5b8cff;
+    --accent-soft: rgba(91, 140, 255, 0.18);
+    --danger: #ff6b6b;
+    --radius: 14px;
+  }
+  html, body { height: 100%; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, "PingFang SC", "Microsoft YaHei", "Noto Sans SC", sans-serif;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  header {
+    padding: 14px 16px 8px;
+    text-align: center;
+    flex-shrink: 0;
+  }
+  header h1 { font-size: 18px; font-weight: 600; }
+  header .file-name {
+    font-size: 13px;
+    color: var(--text-dim);
+    margin-top: 4px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 90vw;
+    margin-left: auto; margin-right: auto;
+  }
+
+  /* ---- 选择区 ---- */
+  #setup {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 18px;
+    padding: 24px;
+    text-align: center;
+  }
+  #setup .tip { color: var(--text-dim); font-size: 15px; line-height: 1.8; }
+  .big-btn {
+    display: block;
+    width: 100%;
+    max-width: 340px;
+    padding: 18px 20px;
+    font-size: 17px;
+    font-weight: 600;
+    color: var(--text);
+    background: var(--panel);
+    border: 1.5px solid #35353f;
+    border-radius: var(--radius);
+    cursor: pointer;
+    transition: transform 0.1s, border-color 0.2s;
+  }
+  .big-btn:active { transform: scale(0.97); }
+  .big-btn.primary {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: #fff;
+  }
+  .hidden { display: none !important; }
+
+  /* ---- 播放器主体 ---- */
+  #player { flex: 1; display: flex; flex-direction: column; min-height: 0; }
+
+  #subtitle-list {
+    flex: 1;
+    overflow-y: auto;
+    padding: 12px 14px 24px;
+    scroll-behavior: smooth;
+    -webkit-overflow-scrolling: touch;
+  }
+  .cue {
+    padding: 13px 16px;
+    margin: 0 auto 10px;
+    max-width: 680px;
+    font-size: 17px;
+    line-height: 1.75;
+    border-radius: 12px;
+    background: transparent;
+    color: var(--text-dim);
+    cursor: pointer;
+    transition: background 0.25s, color 0.25s;
+    user-select: none;
+  }
+  .cue:active { background: var(--panel2); }
+  .cue.active {
+    background: var(--accent-soft);
+    color: var(--text);
+    font-weight: 600;
+    border-left: 3px solid var(--accent);
+  }
+
+  /* ---- 控制面板 ---- */
+  #controls {
+    flex-shrink: 0;
+    background: var(--panel);
+    border-top: 1px solid #2c2c34;
+    padding: 10px 16px calc(14px + env(safe-area-inset-bottom));
+  }
+  .ctl-inner { max-width: 680px; margin: 0 auto; }
+
+  #seek {
+    width: 100%;
+    height: 34px;
+    -webkit-appearance: none;
+    appearance: none;
+    background: transparent;
+    cursor: pointer;
+  }
+  #seek::-webkit-slider-runnable-track {
+    height: 6px;
+    border-radius: 3px;
+    background: linear-gradient(to right, var(--accent) var(--fill, 0%), #3a3a44 var(--fill, 0%));
+  }
+  #seek::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 20px; height: 20px;
+    border-radius: 50%;
+    background: #fff;
+    margin-top: -7px;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.5);
+  }
+  .time-row {
+    display: flex;
+    justify-content: space-between;
+    font-size: 12.5px;
+    color: var(--text-dim);
+    margin-top: -6px;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .btn-row {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 14px;
+    margin-top: 10px;
+  }
+  .ctl-btn {
+    min-width: 52px;
+    height: 52px;
+    border: none;
+    border-radius: 50%;
+    background: var(--panel2);
+    color: var(--text);
+    font-size: 21px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: transform 0.1s;
+  }
+  .ctl-btn:active { transform: scale(0.92); }
+  .ctl-btn.main {
+    width: 72px; height: 72px;
+    background: var(--accent);
+    color: #fff;
+    font-size: 30px;
+    box-shadow: 0 4px 16px rgba(91, 140, 255, 0.35);
+  }
+  .ctl-btn.small { min-width: 46px; height: 46px; font-size: 16px; }
+
+  .sub-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-top: 12px;
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+  .chip {
+    padding: 9px 14px;
+    border-radius: 20px;
+    border: 1.5px solid #35353f;
+    background: transparent;
+    color: var(--text-dim);
+    font-size: 14px;
+    cursor: pointer;
+  }
+  .chip.on { background: var(--accent-soft); border-color: var(--accent); color: var(--text); }
+  select.chip { -webkit-appearance: none; appearance: none; padding-right: 10px; }
+
+  #sleep-display {
+    font-size: 14px;
+    color: var(--text);
+    background: var(--panel2);
+    padding: 9px 16px;
+    border-radius: 20px;
+    font-variant-numeric: tabular-nums;
+  }
+  #sleep-display.warn { color: #ffb35b; }
+
+  /* 定时关闭悬浮胶囊（不占按钮行） */
+  #sleep-pill {
+    position: fixed;
+    top: 60px;
+    right: 14px;
+    z-index: 45;
+    display: none;
+    align-items: center;
+    gap: 8px;
+    background: rgba(30, 30, 36, 0.95);
+    border: 1px solid #3a3a44;
+    border-radius: 20px;
+    padding: 8px 14px;
+    font-size: 14px;
+    font-variant-numeric: tabular-nums;
+  }
+  #sleep-pill.show { display: flex; }
+  #sleep-pill.warn { color: #ffb35b; border-color: #6b5327; }
+  #sp-toggle { cursor: pointer; user-select: none; }
+  #sleep-pill .sp-btn {
+    display: none;
+    border: none;
+    background: var(--panel2);
+    color: var(--text);
+    border-radius: 14px;
+    padding: 6px 11px;
+    font-size: 13px;
+    cursor: pointer;
+  }
+  #sleep-pill.open .sp-btn { display: inline-block; }
+
+  /* 回到当前字幕按钮 */
+  #back-to-cur {
+    position: fixed;
+    right: 16px;
+    bottom: 200px;
+    z-index: 40;
+    display: none;
+    padding: 11px 18px;
+    border: none;
+    border-radius: 22px;
+    background: var(--accent);
+    color: #fff;
+    font-size: 15px;
+    font-weight: 600;
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.4);
+    cursor: pointer;
+  }
+  #back-to-cur.show { display: block; }
+
+  /* ---- 播放列表浮层 ---- */
+  #pl-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.55);
+    z-index: 50;
+    display: flex;
+    align-items: flex-end;
+  }
+  #pl-overlay.hidden { display: none; }
+  #pl-panel {
+    background: var(--panel);
+    width: 100%;
+    max-width: 680px;
+    margin: 0 auto;
+    border-radius: 18px 18px 0 0;
+    max-height: 62vh;
+    display: flex;
+    flex-direction: column;
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+  #pl-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 16px 18px 10px;
+    font-size: 16px;
+    font-weight: 600;
+  }
+  #pl-head button {
+    border: none;
+    background: var(--panel2);
+    color: var(--text);
+    width: 36px; height: 36px;
+    border-radius: 50%;
+    font-size: 16px;
+    cursor: pointer;
+  }
+  #pl-list { overflow-y: auto; padding: 4px 10px 16px; }
+  .pl-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 13px 14px;
+    border-radius: 10px;
+    font-size: 15.5px;
+    color: var(--text-dim);
+    cursor: pointer;
+    line-height: 1.4;
+  }
+  .pl-item:active { background: var(--panel2); }
+  .pl-item .num { flex-shrink: 0; width: 26px; text-align: right; font-variant-numeric: tabular-nums; opacity: 0.7; }
+  .pl-item .nm { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .pl-item.current { background: var(--accent-soft); color: var(--text); font-weight: 600; }
+  .pl-item.current .num { opacity: 1; }
+
+  #msg {
+    position: fixed;
+    left: 50%; bottom: 130px;
+    transform: translateX(-50%);
+    background: rgba(30,30,36,0.95);
+    border: 1px solid #3a3a44;
+    color: var(--text);
+    font-size: 14.5px;
+    padding: 12px 20px;
+    border-radius: 12px;
+    max-width: 85vw;
+    text-align: center;
+    z-index: 99;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.3s;
+  }
+  #msg.show { opacity: 1; }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>🎧 听书播放器</h1>
+  <div class="file-name" id="file-name">未选择文件</div>
+</header>
+
+<!-- 选择文件界面 -->
+<div id="setup">
+  <div class="tip">
+    第 1 步：选择音频文件，可一次多选（mp3 / m4a / wav / flac / ogg）<br>
+    第 2 步：选择对应的 .srt 字幕文件，也可一次多选，按文件名自动配对
+  </div>
+  <button class="big-btn hidden" id="btn-resume" style="border-color: var(--accent);"></button>
+  <button class="big-btn primary" id="btn-pick">📂 选择音频文件（可多选）</button>
+  <button class="big-btn hidden" id="btn-pick-srt">📄 选择字幕文件（.srt）</button>
+</div>
+
+<!-- 播放器界面 -->
+<div id="player" class="hidden">
+  <div id="subtitle-list"></div>
+
+  <div id="controls">
+    <div class="ctl-inner">
+      <input type="range" id="seek" min="0" max="1000" value="0" step="1">
+      <div class="time-row">
+        <span id="t-cur">00:00:00</span>
+        <span id="t-total">00:00:00</span>
+      </div>
+
+      <div class="btn-row">
+        <button class="ctl-btn" id="btn-back" title="后退 15 秒">⏪</button>
+        <button class="ctl-btn main" id="btn-play" title="播放/暂停">▶</button>
+        <button class="ctl-btn" id="btn-fwd" title="前进 15 秒">⏩</button>
+      </div>
+
+      <div class="sub-row">
+        <button class="chip" id="btn-srt">📄 换字幕</button>
+        <button class="chip" id="btn-list">☰ 列表</button>
+        <select class="chip" id="speed" title="倍速">
+          <option value="0.5">0.5x</option>
+          <option value="0.75">0.75x</option>
+          <option value="1" selected>1x</option>
+          <option value="1.25">1.25x</option>
+          <option value="1.5">1.5x</option>
+          <option value="2">2x</option>
+        </select>
+        <button class="chip" id="btn-sleep">⏰ 定时</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- 定时关闭悬浮胶囊 -->
+<div id="sleep-pill">
+  <span id="sp-toggle">⏰ <span id="sp-time">30:00</span></span>
+  <button class="sp-btn" id="btn-sleep-add">+5 分钟</button>
+  <button class="sp-btn" id="btn-sleep-cancel">取消</button>
+</div>
+
+<!-- 播放列表浮层 -->
+<div id="pl-overlay" class="hidden">
+  <div id="pl-panel">
+    <div id="pl-head">
+      <span>☰ 播放列表</span>
+      <button id="pl-close">✕</button>
+    </div>
+    <div id="pl-list"></div>
+  </div>
+</div>
+
+<button id="back-to-cur">↩ 回到当前</button>
+
+<div id="msg"></div>
+
+<!-- 隐藏的文件选择器 -->
+<input type="file" id="input-audio" accept="audio/*,.mp3,.m4a,.aac,.wav,.flac,.ogg,.opus" multiple hidden>
+<input type="file" id="input-srt" accept=".srt,.vtt,text/plain" multiple hidden>
+
+<script>
+(function () {
+  "use strict";
+
+  // ---------- 状态 ----------
+  var cues = [];            // [{start, end, text}]
+  var activeIdx = -1;
+  var scrollPending = false;
+
+  // ---------- DOM ----------
+  var $ = function (id) { return document.getElementById(id); };
+  var elSetup = $("setup"), elPlayer = $("player");
+  var elFileName = $("file-name");
+  var btnPick = $("btn-pick"), btnPickSrt = $("btn-pick-srt");
+  var inputAudio = $("input-audio"), inputSrt = $("input-srt");
+  var list = $("subtitle-list");
+  var audio = new Audio();
+  audio.preload = "metadata";
+
+  var btnPlay = $("btn-play"), seek = $("seek");
+  var tCur = $("t-cur"), tTotal = $("t-total");
+  var speedSel = $("speed");
+  var btnSleep = $("btn-sleep"), sleepPill = $("sleep-pill"), spTime = $("sp-time");
+  var btnSleepAdd = $("btn-sleep-add"), btnSleepCancel = $("btn-sleep-cancel");
+
+  // ---------- 工具 ----------
+  var msgTimer = null;
+  function showMsg(text, ms) {
+    var m = $("msg");
+    m.textContent = text;
+    m.classList.add("show");
+    clearTimeout(msgTimer);
+    msgTimer = setTimeout(function () { m.classList.remove("show"); }, ms || 2600);
+  }
+
+  function fmt(t) {
+    if (!isFinite(t) || t < 0) t = 0;
+    var h = Math.floor(t / 3600),
+        m = Math.floor(t % 3600 / 60),
+        s = Math.floor(t % 60);
+    var mm = (m < 10 ? "0" : "") + m, ss = (s < 10 ? "0" : "") + s;
+    return h > 0 ? h + ":" + mm + ":" + ss : mm + ":" + ss;
+  }
+
+  function escapeHtml(s) {
+    return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+  }
+
+  // ---------- 字幕解析（SRT / VTT，支持 UTF-8 与 GBK 自动识别） ----------
+  function parseTimestamp(line) {
+    var m = line.match(/(\d{1,2}):(\d{1,2}):(\d{1,2})[,.](\d{1,3})\s*-->\s*(\d{1,2}):(\d{1,2}):(\d{1,2})[,.](\d{1,3})/);
+    if (!m) m = line.match(/(\d{1,2}):(\d{1,2})[,.](\d{1,3})\s*-->\s*(\d{1,2}):(\d{1,2})[,.](\d{1,3})/);
+    if (!m) return null;
+    var g = m.map(Number);
+    if (m.length === 9) {
+      return { start: g[1] * 3600 + g[2] * 60 + g[3] + g[4] / 1000,
+               end:   g[5] * 3600 + g[6] * 60 + g[7] + g[8] / 1000 };
+    }
+    return { start: g[1] * 60 + g[2] + g[3] / 1000,
+             end:   g[4] * 60 + g[5] + g[6] / 1000 };
+  }
+
+  function decodeSubtitle(buffer) {
+    // 先按 UTF-8 严格解码，失败则回退 GBK（很多老字幕是 GBK 编码）
+    try {
+      return new TextDecoder("utf-8", { fatal: true }).decode(buffer);
+    } catch (e) {
+      try { return new TextDecoder("gbk").decode(buffer); }
+      catch (e2) { return new TextDecoder("utf-8").decode(buffer); }
+    }
+  }
+
+  function parseSrt(content) {
+    var lines = content.replace(/\r\n?/g, "\n").replace(/^\uFEFF/, "").split("\n");
+    var out = [], cur = null;
+    for (var i = 0; i < lines.length; i++) {
+      var ts = parseTimestamp(lines[i]);
+      if (ts) {
+        if (cur) out.push(cur);
+        cur = { start: ts.start, end: ts.end, text: "" };
+        continue;
+      }
+      if (cur) {
+        var line = lines[i].trim();
+        if (!line) { if (cur.text) { out.push(cur); cur = null; } continue; }
+        if (/^\d+$/.test(line) && !cur.text) continue; // 序号行
+        cur.text += (cur.text ? "\n" : "") + line;
+      }
+    }
+    if (cur && cur.text) out.push(cur);
+    return out.filter(function (c) { return c.end > c.start || c.end === 0; });
+  }
+
+  // ---------- 字幕渲染 ----------
+  function renderSubtitles() {
+    list.innerHTML = "";
+    if (!cues.length) return;
+    var frag = document.createDocumentFragment();
+    cues.forEach(function (c, i) {
+      var div = document.createElement("div");
+      div.className = "cue";
+      div.dataset.idx = i;
+      div.innerHTML = escapeHtml(c.text).replace(/\n/g, "<br>");
+      div.addEventListener("click", function () {
+        audio.currentTime = cues[i].start;
+        if (audio.paused) audio.play();
+        showMsg("跳转到 " + fmt(cues[i].start));
+      });
+      frag.appendChild(div);
+    });
+    list.appendChild(frag);
+  }
+
+  // ---------- 手动浏览检测：用户翻看时暂停自动滚动 8 秒 ----------
+  var userBrowsingUntil = 0;
+  var btnBackCur = $("back-to-cur");
+
+  function userScrolling() { return Date.now() < userBrowsingUntil; }
+
+  ["touchstart", "wheel", "mousedown"].forEach(function (ev) {
+    list.addEventListener(ev, function () {
+      userBrowsingUntil = Date.now() + 8000;
+      updateBackBtn();
+    }, { passive: true });
+  });
+
+  function updateBackBtn() {
+    var a = list.querySelector(".cue.active");
+    if (!a || !userScrolling()) {
+      btnBackCur.classList.remove("show");
+      return;
+    }
+    var r = a.getBoundingClientRect(), lr = list.getBoundingClientRect();
+    var visible = r.bottom > lr.top && r.top < lr.bottom;
+    btnBackCur.classList.toggle("show", !visible);
+  }
+
+  btnBackCur.addEventListener("click", function () {
+    userBrowsingUntil = 0;
+    var a = list.querySelector(".cue.active");
+    if (a) {
+      var top = a.offsetTop - list.clientHeight / 2 + a.clientHeight / 2;
+      list.scrollTo({ top: Math.max(0, top), behavior: "smooth" });
+    }
+    btnBackCur.classList.remove("show");
+  });
+
+  list.addEventListener("scroll", function () {
+    if (scrollPending) return;
+    updateBackBtn();
+  }, { passive: true });
+
+  function highlight(time) {
+    var idx = -1;
+    for (var i = 0; i < cues.length; i++) {
+      if (time >= cues[i].start && time < (cues[i].end || cues[i].start + 5)) { idx = i; break; }
+      if (cues[i].start > time) break;
+    }
+    // 没精确命中时，取最后一个已开始的
+    if (idx === -1 && cues.length && time >= cues[0].start) {
+      for (var j = cues.length - 1; j >= 0; j--) {
+        if (cues[j].start <= time) { idx = j; break; }
+      }
+    }
+    if (idx === activeIdx) return;
+    var prev = list.querySelector(".cue.active");
+    if (prev) prev.classList.remove("active");
+    activeIdx = idx;
+    if (idx >= 0) {
+      var el = list.children[idx];
+      if (el) {
+        el.classList.add("active");
+        if (!scrollPending && !userScrolling()) {
+          scrollPending = true;
+          setTimeout(function () {
+            var a = list.querySelector(".cue.active");
+            if (a && !userScrolling()) {
+              var top = a.offsetTop - list.clientHeight / 2 + a.clientHeight / 2;
+              list.scrollTo({ top: Math.max(0, top), behavior: "smooth" });
+            }
+            scrollPending = false;
+            updateBackBtn();
+          }, 80);
+        } else {
+          updateBackBtn();
+        }
+      }
+    }
+  }
+
+  // ---------- 播放列表与音频加载 ----------
+  var tracks = [];        // [{name, base, url, file}]
+  var srtMap = {};        // 文件名(不含扩展名) -> 已解析字幕
+  var curTrack = -1;
+  var plOverlay = $("pl-overlay"), plList = $("pl-list");
+
+  // ---------- 进度记忆（按文件名存到浏览器本地存储） ----------
+  function saveKey(base) { return "tl_pos_" + base; }
+  var lastSaved = 0, pendingResume = null;
+
+  function saveProgress() {
+    if (curTrack < 0 || !tracks[curTrack] || !isFinite(audio.currentTime)) return;
+    try {
+      localStorage.setItem(saveKey(tracks[curTrack].base), JSON.stringify({
+        t: audio.currentTime,
+        d: audio.duration || 0,
+        ts: Date.now()
+      }));
+    } catch (e) {}
+  }
+  function saveSettings() {
+    try { localStorage.setItem("tl_speed", speedSel.value); } catch (e) {}
+  }
+  // 切后台 / 关页面时也存一次
+  window.addEventListener("pagehide", saveProgress);
+  document.addEventListener("visibilitychange", function () {
+    if (document.visibilityState === "hidden") saveProgress();
+  });
+
+  // ---------- 内容库：把选过的文件存进手机本地存储，下次免导入 ----------
+  var db = null;
+  function openDB() {
+    return new Promise(function (resolve) {
+      try {
+        var req = indexedDB.open("audiobook_player", 1);
+        req.onupgradeneeded = function () {
+          var d = req.result;
+          if (!d.objectStoreNames.contains("tracks")) d.createObjectStore("tracks", { keyPath: "name" });
+          if (!d.objectStoreNames.contains("srts")) d.createObjectStore("srts", { keyPath: "base" });
+        };
+        req.onsuccess = function () { resolve(req.result); };
+        req.onerror = function () { resolve(null); };
+      } catch (e) { resolve(null); }
+    });
+  }
+  function idbAll(store) {
+    return new Promise(function (res) {
+      if (!db) return res([]);
+      try {
+        db.transaction(store).objectStore(store).getAll().onsuccess = function (e) { res(e.target.result || []); };
+      } catch (e) { res([]); }
+    });
+  }
+  function idbPut(store, val) {
+    return new Promise(function (res) {
+      if (!db) return res();
+      try {
+        var t = db.transaction(store, "readwrite");
+        t.objectStore(store).put(val);
+        t.oncomplete = function () { res(); };
+        t.onerror = function () { res(); };
+      } catch (e) { res(); }
+    });
+  }
+  function idbClear(store) {
+    return new Promise(function (res) {
+      if (!db) return res();
+      try {
+        var t = db.transaction(store, "readwrite");
+        t.objectStore(store).clear();
+        t.oncomplete = function () { res(); };
+        t.onerror = function () { res(); };
+      } catch (e) { res(); }
+    });
+  }
+
+  var btnResume = $("btn-resume");
+  btnResume.addEventListener("click", function () {
+    Promise.all([idbAll("tracks"), idbAll("srts")]).then(function (r) {
+      var saved = r[0].sort(function (a, b) { return (a.order || 0) - (b.order || 0); });
+      if (!saved.length) { showMsg("没有找到上次保存的内容，请重新选择文件"); return; }
+      tracks = saved.map(function (t) {
+        return { name: t.name, base: t.base, url: URL.createObjectURL(t.blob), file: t.blob };
+      });
+      r[1].forEach(function (s) {
+        var p = parseSrt(s.text);
+        if (p.length) srtMap[s.base] = p;
+      });
+      curTrack = -1;
+      elSetup.classList.add("hidden");
+      elPlayer.classList.remove("hidden");
+      renderPlaylist();
+      playTrack(0);
+    });
+  });
+
+  // 启动时检查是否有上次的内容
+  openDB().then(function (d) {
+    db = d;
+    if (!db) return;
+    idbAll("tracks").then(function (saved) {
+      if (saved.length) {
+        btnResume.textContent = "▶ 继续上次（" + saved.length + " 集）";
+        btnResume.classList.remove("hidden");
+      }
+    });
+  });
+
+  btnPick.addEventListener("click", function () { inputAudio.click(); });
+  inputAudio.addEventListener("change", function () {
+    var files = Array.prototype.slice.call(inputAudio.files);
+    if (!files.length) return;
+    // 释放旧的对象 URL
+    tracks.forEach(function (t) { URL.revokeObjectURL(t.url); });
+    tracks = files.map(function (f) {
+      return { name: f.name, base: f.name.replace(/\.[^.]+$/, ""), url: URL.createObjectURL(f), file: f };
+    });
+    // 存入本地内容库，下次打开免重新导入
+    idbClear("tracks").then(function () {
+      tracks.forEach(function (t, i) {
+        idbPut("tracks", { name: t.name, base: t.base, blob: t.file, order: i });
+      });
+    });
+    curTrack = -1;
+    elSetup.classList.add("hidden");
+    elPlayer.classList.remove("hidden");
+    renderPlaylist();
+    showMsg("已加入 " + tracks.length + " 个文件");
+    setTimeout(function () { inputSrt.click(); }, 400);
+    playTrack(0);
+  });
+
+  function playTrack(i) {
+    if (i < 0 || i >= tracks.length) return;
+    curTrack = i;
+    var t = tracks[i];
+    audio.src = t.url;
+    // 尝试恢复该文件的上次播放进度
+    pendingResume = null;
+    try {
+      var raw = localStorage.getItem(saveKey(t.base));
+      if (raw) {
+        var o = JSON.parse(raw);
+        if (o && isFinite(o.t) && o.t > 3) pendingResume = o.t;
+      }
+    } catch (e) {}
+    elFileName.textContent = (i + 1) + "/" + tracks.length + " · " + t.name;
+    // 自动配对同名字幕
+    cues = srtMap[t.base] || [];
+    activeIdx = -1;
+    renderSubtitles();
+    tTotal.textContent = "00:00";
+    if (cues.length) {
+      showMsg("「" + t.base + "」已匹配同名字幕（" + cues.length + " 条）");
+    } else if (Object.keys(srtMap).length) {
+      showMsg("「" + t.base + "」没有同名/已选字幕，可点「换字幕」手动选");
+    } else {
+      showMsg("还没有选择字幕文件，可点「换字幕」选择");
+    }
+    if ("mediaSession" in navigator) {
+      try {
+        navigator.mediaSession.metadata = new MediaMetadata({ title: t.name, artist: "听书播放器" });
+      } catch (e) {}
+    }
+    audio.play();
+    highlightPlaylist();
+  }
+
+  audio.addEventListener("ended", function () {
+    saveProgress();
+    if (curTrack < tracks.length - 1) {
+      playTrack(curTrack + 1);
+    } else {
+      btnPlay.textContent = "▶";
+      showMsg("播放列表已播完");
+    }
+  });
+
+  // ---------- 播放列表 UI ----------
+  function renderPlaylist() {
+    plList.innerHTML = "";
+    var frag = document.createDocumentFragment();
+    tracks.forEach(function (t, i) {
+      var div = document.createElement("div");
+      div.className = "pl-item";
+      div.innerHTML = '<span class="num">' + (i + 1) + '</span><span class="nm">' + (srtMap[t.base] ? "📄 " : "▫ ") + escapeHtml(t.name) + "</span>";
+      div.addEventListener("click", function () {
+        playTrack(i);
+        plOverlay.classList.add("hidden");
+      });
+      frag.appendChild(div);
+    });
+    plList.appendChild(frag);
+    highlightPlaylist();
+  }
+
+  function highlightPlaylist() {
+    var items = plList.children;
+    for (var i = 0; i < items.length; i++) {
+      items[i].classList.toggle("current", i === curTrack);
+    }
+  }
+
+  $("btn-list").addEventListener("click", function () {
+    if (!tracks.length) { showMsg("播放列表为空"); return; }
+    plOverlay.classList.remove("hidden");
+    var cur = plList.children[curTrack];
+    if (cur && cur.scrollIntoView) cur.scrollIntoView({ block: "center" });
+  });
+  $("pl-close").addEventListener("click", function () { plOverlay.classList.add("hidden"); });
+  plOverlay.addEventListener("click", function (e) {
+    if (e.target === plOverlay) plOverlay.classList.add("hidden");
+  });
+
+  btnPickSrt.addEventListener("click", function () { inputSrt.click(); });
+  $("btn-srt").addEventListener("click", function () { inputSrt.click(); });
+  inputSrt.addEventListener("change", function () {
+    var files = Array.prototype.slice.call(inputSrt.files);
+    if (!files.length) return;
+    var pending = files.length, okCount = 0, matchedCur = false, pairCount = 0;
+    var trackBases = {};
+    tracks.forEach(function (t) { trackBases[t.base] = true; });
+    files.forEach(function (f) {
+      var reader = new FileReader();
+      reader.onload = function () {
+        var content = decodeSubtitle(new Uint8Array(reader.result));
+        var parsed = parseSrt(content);
+        var base = f.name.replace(/\.[^.]+$/, "");
+        if (parsed.length) {
+          srtMap[base] = parsed;
+          idbPut("srts", { base: base, text: content });
+          okCount++;
+          if (trackBases[base]) pairCount++;
+          if (curTrack >= 0 && tracks[curTrack] && tracks[curTrack].base === base) {
+            cues = parsed;
+            activeIdx = -1;
+            renderSubtitles();
+            highlight(audio.currentTime || 0);
+            matchedCur = true;
+          }
+        }
+        if (--pending === 0) {
+          renderPlaylist(); // 刷新列表里的 📄 配对标记
+          if (okCount === 0) {
+            showMsg("字幕解析失败：文件里没找到有效的时间轴");
+          } else if (matchedCur) {
+            showMsg("字幕已加载并配对当前曲目（" + cues.length + " 条），点击字幕可跳转");
+          } else if (pairCount > 0) {
+            showMsg("已加载 " + okCount + " 个字幕，其中 " + pairCount + " 个与音频同名配对成功");
+          } else {
+            showMsg("已加载 " + okCount + " 个字幕，但没有一个和音频文件同名，可到「☰ 列表」确认");
+          }
+        }
+      };
+      reader.onerror = function () {
+        if (--pending === 0) showMsg("部分字幕读取失败");
+      };
+      reader.readAsArrayBuffer(f);
+    });
+  });
+
+  // ---------- 播放控制 ----------
+  btnPlay.addEventListener("click", function () {
+    if (!audio.src) return;
+    audio.paused ? audio.play() : audio.pause();
+  });
+  audio.addEventListener("play", function () { btnPlay.textContent = "⏸"; });
+  audio.addEventListener("pause", function () { btnPlay.textContent = "▶"; saveProgress(); });
+
+  $("btn-back").addEventListener("click", function () { audio.currentTime = Math.max(0, audio.currentTime - 15); });
+  $("btn-fwd").addEventListener("click", function () { audio.currentTime = Math.min(audio.duration || 0, audio.currentTime + 15); });
+
+  speedSel.addEventListener("change", function () {
+    audio.playbackRate = parseFloat(speedSel.value);
+    saveSettings();
+  });
+  // 恢复上次的倍速设置
+  try {
+    var savedSpeed = localStorage.getItem("tl_speed");
+    if (savedSpeed && parseFloat(savedSpeed) > 0) {
+      speedSel.value = savedSpeed;
+      audio.playbackRate = parseFloat(savedSpeed);
+    }
+  } catch (e) {}
+
+  seek.addEventListener("input", function () {
+    if (audio.duration) audio.currentTime = seek.value / 1000 * audio.duration;
+  });
+
+  audio.addEventListener("timeupdate", function () {
+    if (audio.duration) {
+      seek.value = audio.currentTime / audio.duration * 1000;
+      seek.style.setProperty("--fill", (seek.value / 10) + "%");
+    }
+    tCur.textContent = fmt(audio.currentTime);
+    if (cues.length) highlight(audio.currentTime);
+    if (Date.now() - lastSaved > 3000) {
+      saveProgress();
+      lastSaved = Date.now();
+    }
+  });
+  audio.addEventListener("loadedmetadata", function () {
+    tTotal.textContent = fmt(audio.duration);
+    // 恢复进度：快播完的视为已听完，从头开始
+    if (pendingResume != null) {
+      if (audio.duration && pendingResume > audio.duration - 5) {
+        audio.currentTime = 0;
+      } else {
+        audio.currentTime = pendingResume;
+        showMsg("已恢复上次进度 " + fmt(pendingResume));
+      }
+      pendingResume = null;
+    }
+  });
+  audio.addEventListener("ended", function () { btnPlay.textContent = "▶"; });
+  audio.addEventListener("error", function () {
+    if (audio.src) showMsg("音频无法播放，可能是浏览器不支持该格式，建议用 mp3 / m4a / wav");
+  });
+
+  // 锁屏 / 通知栏控制（安卓 Chrome 支持）
+  if ("mediaSession" in navigator) {
+    navigator.mediaSession.setActionHandler("play", function () { audio.play(); });
+    navigator.mediaSession.setActionHandler("pause", function () { audio.pause(); });
+    navigator.mediaSession.setActionHandler("seekbackward", function () { audio.currentTime -= 15; });
+    navigator.mediaSession.setActionHandler("seekforward", function () { audio.currentTime += 15; });
+  }
+
+  // ---------- 定时关闭 ----------
+  var sleepDeadline = 0, sleepTick = null;
+
+  function updateSleepUI(remaining) {
+    if (remaining <= 0) {
+      sleepPill.classList.remove("show", "open", "warn");
+      return;
+    }
+    sleepPill.classList.add("show");
+    var mins = Math.floor(remaining / 60000);
+    var secs = Math.floor(remaining % 60000 / 1000);
+    spTime.textContent = "剩余 " + mins + ":" + (secs < 10 ? "0" : "") + secs;
+    sleepPill.classList.toggle("warn", remaining < 60000);
+  }
+
+  // 点胶囊本体展开/收起 +5 和 取消 按钮，4 秒无操作自动收起
+  var pillTimer = null;
+  $("sp-toggle").addEventListener("click", function () {
+    sleepPill.classList.toggle("open");
+    clearTimeout(pillTimer);
+    if (sleepPill.classList.contains("open")) {
+      pillTimer = setTimeout(function () { sleepPill.classList.remove("open"); }, 4000);
+    }
+  });
+
+  function startSleep(minutes) {
+    stopSleep(true);
+    sleepDeadline = Date.now() + minutes * 60000;
+    sleepTick = setInterval(function () {
+      var remaining = sleepDeadline - Date.now();
+      if (remaining <= 0) {
+        audio.pause();
+        stopSleep();
+        showMsg("⏰ 定时时间到，已暂停播放");
+        return;
+      }
+      updateSleepUI(remaining);
+    }, 500);
+    updateSleepUI(minutes * 60000);
+    showMsg("将在 " + minutes + " 分钟后暂停播放");
+  }
+
+  function stopSleep(silent) {
+    clearInterval(sleepTick);
+    sleepTick = null;
+    sleepDeadline = 0;
+    if (!silent) updateSleepUI(0);
+  }
+
+  btnSleep.addEventListener("click", function () {
+    var v = prompt("定时关闭：输入分钟数（如 30），或直接确定使用 30 分钟", "30");
+    if (v === null) return;
+    var n = parseFloat(v);
+    if (!isFinite(n) || n <= 0) { showMsg("请输入有效的分钟数"); return; }
+    startSleep(n);
+  });
+  btnSleepAdd.addEventListener("click", function () {
+    if (!sleepDeadline) return;
+    sleepDeadline += 5 * 60000;
+    showMsg("已加时 5 分钟");
+  });
+  btnSleepCancel.addEventListener("click", function () {
+    stopSleep();
+    showMsg("已取消定时关闭");
+  });
+})();
+</script>
+</body>
+</html>
