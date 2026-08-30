@@ -10,13 +10,26 @@ android {
         applicationId "com.iuhz.audiobookplayer"
         minSdk 24
         targetSdk 34
-        versionCode 1
-        versionName "1.0"
+        versionCode 3
+        versionName "1.2"
+    }
+
+    signingConfigs {
+        common {
+            storeFile file("keystore/release.keystore")
+            storePassword "audiobook123"
+            keyAlias "audiobook"
+            keyPassword "audiobook123"
+        }
     }
 
     buildTypes {
         release {
             minifyEnabled false
+            signingConfig signingConfigs.common
+        }
+        debug {
+            signingConfig signingConfigs.common
         }
     }
 
