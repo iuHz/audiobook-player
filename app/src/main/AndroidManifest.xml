@@ -3,7 +3,7 @@
 
     <application
         android:label="听书播放器"
-        android:theme="@android:style/Theme.DeviceDefault.NoActionBar"
+        android:theme="@style/Theme.AppCompat.NoActionBar"
         android:allowBackup="true">
 
         <activity
