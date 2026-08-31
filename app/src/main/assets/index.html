@@ -45,18 +45,50 @@
     margin-left: auto; margin-right: auto;
   }
 
-  /* ---- 选择区 ---- */
+  /* ---- 书单选择区 ---- */
   #setup {
     flex: 1;
     display: flex;
     flex-direction: column;
     align-items: center;
-    justify-content: center;
-    gap: 18px;
-    padding: 24px;
+    gap: 14px;
+    padding: 20px 24px 48px;
+    overflow-y: auto;
     text-align: center;
   }
   #setup .tip { color: var(--text-dim); font-size: 15px; line-height: 1.8; }
+  #book-list {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    width: 100%;
+    max-width: 340px;
+  }
+  .book-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 15px 18px;
+    border-radius: var(--radius);
+    background: var(--panel);
+    border: 1.5px solid #35353f;
+    color: var(--text);
+    font-size: 16px;
+    cursor: pointer;
+    transition: transform 0.1s;
+  }
+  .book-row:active { transform: scale(0.98); }
+  .book-row .bk-name {
+    flex: 1;
+    text-align: left;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-weight: 600;
+  }
+  .book-row .bk-count { flex-shrink: 0; color: var(--text-dim); font-size: 13.5px; }
+  .book-row .bk-live { flex-shrink: 0; color: var(--accent); font-size: 12px; }
+  .book-row.current { border-color: var(--accent); background: var(--accent-soft); }
   .big-btn {
     display: block;
     width: 100%;
@@ -343,15 +375,11 @@
   <div class="file-name" id="file-name">未选择文件</div>
 </header>
 
-<!-- 选择文件界面 -->
+<!-- 书单选择界面 -->
 <div id="setup">
-  <div class="tip">
-    第 1 步：选择音频文件，可一次多选（mp3 / m4a / wav / flac / ogg）<br>
-    第 2 步：选择对应的 .srt 字幕文件，也可一次多选，按文件名自动配对
-  </div>
-  <button class="big-btn hidden" id="btn-resume" style="border-color: var(--accent);"></button>
-  <button class="big-btn primary" id="btn-pick">📂 选择音频文件（可多选）</button>
-  <button class="big-btn hidden" id="btn-pick-srt">📄 选择字幕文件（.srt）</button>
+  <div class="tip">📚 我的书单<br><span style="font-size:13px">点书单继续听，或新建一个书单</span></div>
+  <div id="book-list"></div>
+  <button class="big-btn primary" id="btn-pick">＋ 新建书单（选择音频，可多选）</button>
 </div>
 
 <!-- 播放器界面 -->
@@ -375,6 +403,7 @@
       <div class="sub-row">
         <button class="chip" id="btn-srt">📄 换字幕</button>
         <button class="chip" id="btn-list">☰ 列表</button>
+        <button class="chip" id="btn-books">📚 书单</button>
         <select class="chip" id="speed" title="倍速">
           <option value="0.5">0.5x</option>
           <option value="0.75">0.75x</option>
@@ -428,7 +457,7 @@
   var $ = function (id) { return document.getElementById(id); };
   var elSetup = $("setup"), elPlayer = $("player");
   var elFileName = $("file-name");
-  var btnPick = $("btn-pick"), btnPickSrt = $("btn-pick-srt");
+  var btnPick = $("btn-pick");
   var inputAudio = $("input-audio"), inputSrt = $("input-srt");
   var list = $("subtitle-list");
   var audio = new Audio();
@@ -634,15 +663,37 @@
     if (document.visibilityState === "hidden") saveProgress();
   });
 
-  // ---------- 内容库：把选过的文件存进手机本地存储，下次免导入 ----------
+  // ---------- 内容库 v2：多书单（books → tracks 两级，旧数据自动迁移） ----------
   var db = null;
+  var books = [];
+  var bookCount = {};
+  var curBookId = null;
+  var curBookName = "";
+
   function openDB() {
     return new Promise(function (resolve) {
       try {
-        var req = indexedDB.open("audiobook_player", 1);
+        var req = indexedDB.open("audiobook_player", 2);
         req.onupgradeneeded = function () {
           var d = req.result;
-          if (!d.objectStoreNames.contains("tracks")) d.createObjectStore("tracks", { keyPath: "name" });
+          var tx = req.transaction;
+          if (!d.objectStoreNames.contains("books")) d.createObjectStore("books", { keyPath: "id" });
+          if (d.objectStoreNames.contains("tracks")) {
+            // v1 旧库：单列表结构 → 迁移为默认书单
+            tx.objectStore("tracks").getAll().onsuccess = function (ev) {
+              var oldTracks = ev.target.result || [];
+              d.deleteObjectStore("tracks");
+              var st = d.createObjectStore("tracks", { keyPath: "id", autoIncrement: true });
+              st.createIndex("bookId", "bookId");
+              oldTracks.forEach(function (t, i) {
+                st.put({ bookId: 1, name: t.name, base: t.base, blob: t.blob, order: i });
+              });
+              tx.objectStore("books").put({ id: 1, name: "我的书单" });
+            };
+          } else {
+            var st = d.createObjectStore("tracks", { keyPath: "id", autoIncrement: true });
+            st.createIndex("bookId", "bookId");
+          }
           if (!d.objectStoreNames.contains("srts")) d.createObjectStore("srts", { keyPath: "base" });
         };
         req.onsuccess = function () { resolve(req.result); };
@@ -669,72 +720,122 @@
       } catch (e) { res(); }
     });
   }
-  function idbClear(store) {
-    return new Promise(function (res) {
-      if (!db) return res();
-      try {
-        var t = db.transaction(store, "readwrite");
-        t.objectStore(store).clear();
-        t.oncomplete = function () { res(); };
-        t.onerror = function () { res(); };
-      } catch (e) { res(); }
-    });
-  }
 
-  var btnResume = $("btn-resume");
-  btnResume.addEventListener("click", function () {
-    Promise.all([idbAll("tracks"), idbAll("srts")]).then(function (r) {
-      var saved = r[0].sort(function (a, b) { return (a.order || 0) - (b.order || 0); });
-      if (!saved.length) { showMsg("没有找到上次保存的内容，请重新选择文件"); return; }
-      tracks = saved.map(function (t) {
-        return { name: t.name, base: t.base, url: URL.createObjectURL(t.blob), file: t.blob };
-      });
-      r[1].forEach(function (s) {
+  function loadSrts() {
+    return idbAll("srts").then(function (list) {
+      srtMap = {};
+      list.forEach(function (s) {
         var p = parseSrt(s.text);
         if (p.length) srtMap[s.base] = p;
       });
+    });
+  }
+
+  function refreshBooks() {
+    return idbAll("books").then(function (bs) {
+      books = bs.sort(function (a, b) { return (a.id || 0) - (b.id || 0); });
+      return idbAll("tracks");
+    }).then(function (all) {
+      bookCount = {};
+      all.forEach(function (t) { bookCount[t.bookId] = (bookCount[t.bookId] || 0) + 1; });
+      renderBookList();
+    });
+  }
+
+  function renderBookList() {
+    var el = $("book-list");
+    el.innerHTML = "";
+    var lastId = 0;
+    try { lastId = parseInt(localStorage.getItem("tl_lastbook") || "0", 10) || 0; } catch (e) {}
+    var frag = document.createDocumentFragment();
+    books.forEach(function (b) {
+      var row = document.createElement("div");
+      row.className = "book-row" + (b.id === curBookId ? " current" : "");
+      var live = b.id === curBookId ? '<span class="bk-live">▶ 正在播</span>' : "";
+      row.innerHTML = '<span class="bk-name">' + escapeHtml(b.name) + "</span>" +
+                      live +
+                      '<span class="bk-count">' + (bookCount[b.id] || 0) + " 集</span>";
+      row.addEventListener("click", function () {
+        if (b.id === curBookId) {
+          // 回到正在播的这个书单，不打断播放
+          elSetup.classList.add("hidden");
+          elPlayer.classList.remove("hidden");
+        } else {
+          saveProgress();
+          openBook(b.id);
+        }
+      });
+      frag.appendChild(row);
+    });
+    el.appendChild(frag);
+  }
+
+  function openBook(id) {
+    return idbAll("tracks").then(function (all) {
+      var rows = all.filter(function (t) { return t.bookId === id; })
+                    .sort(function (a, b) { return (a.order || 0) - (b.order || 0); });
+      if (!rows.length) { showMsg("这个书单是空的"); return; }
+      tracks.forEach(function (t) { URL.revokeObjectURL(t.url); });
+      tracks = rows.map(function (t) {
+        return { name: t.name, base: t.base, url: URL.createObjectURL(t.blob), file: t.blob };
+      });
+      curBookId = id;
+      for (var i = 0; i < books.length; i++) {
+        if (books[i].id === id) curBookName = books[i].name;
+      }
+      try { localStorage.setItem("tl_lastbook", String(id)); } catch (e) {}
       curTrack = -1;
       elSetup.classList.add("hidden");
       elPlayer.classList.remove("hidden");
       renderPlaylist();
-      playTrack(0);
+      // 恢复上次听到的那一集
+      var startIdx = 0;
+      try {
+        var pos = JSON.parse(localStorage.getItem("tl_bookpos_" + id) || "null");
+        if (pos && pos.i >= 0 && pos.i < tracks.length) startIdx = pos.i;
+      } catch (e) {}
+      playTrack(startIdx);
     });
-  });
+  }
 
-  // 启动时检查是否有上次的内容
+  // 启动：开库 → 载入字幕库 → 渲染书单
   openDB().then(function (d) {
     db = d;
-    if (!db) return;
-    idbAll("tracks").then(function (saved) {
-      if (saved.length) {
-        btnResume.textContent = "▶ 继续上次（" + saved.length + " 集）";
-        btnResume.classList.remove("hidden");
-      }
-    });
+    if (!db) { showMsg("本地存储不可用，文件无法保存"); return; }
+    loadSrts().then(refreshBooks);
   });
 
   btnPick.addEventListener("click", function () { inputAudio.click(); });
   inputAudio.addEventListener("change", function () {
     var files = Array.prototype.slice.call(inputAudio.files);
     if (!files.length) return;
-    // 释放旧的对象 URL
-    tracks.forEach(function (t) { URL.revokeObjectURL(t.url); });
-    tracks = files.map(function (f) {
-      return { name: f.name, base: f.name.replace(/\.[^.]+$/, ""), url: URL.createObjectURL(f), file: f };
-    });
-    // 存入本地内容库，下次打开免重新导入
-    idbClear("tracks").then(function () {
-      tracks.forEach(function (t, i) {
-        idbPut("tracks", { name: t.name, base: t.base, blob: t.file, order: i });
+    var defaultName = files[0].name.replace(/\.[^.]+$/, "");
+    var name = prompt("给这个书单起个名字：", defaultName);
+    if (name === null) return; // 用户取消
+    name = name.trim() || defaultName;
+    var bookId = Date.now();
+    idbPut("books", { id: bookId, name: name }).then(function () {
+      var chain = Promise.resolve();
+      files.forEach(function (f, i) {
+        chain = chain.then(function () {
+          return idbPut("tracks", {
+            bookId: bookId,
+            name: f.name,
+            base: f.name.replace(/\.[^.]+$/, ""),
+            blob: f,
+            order: i
+          });
+        });
       });
+      return chain;
+    }).then(function () {
+      showMsg("书单「" + name + "」已创建");
+      return refreshBooks();
+    }).then(function () {
+      return openBook(bookId);
+    }).then(function () {
+      setTimeout(function () { inputSrt.click(); }, 400);
     });
-    curTrack = -1;
-    elSetup.classList.add("hidden");
-    elPlayer.classList.remove("hidden");
-    renderPlaylist();
-    showMsg("已加入 " + tracks.length + " 个文件");
-    setTimeout(function () { inputSrt.click(); }, 400);
-    playTrack(0);
   });
 
   function playTrack(i) {
@@ -751,7 +852,8 @@
         if (o && isFinite(o.t) && o.t > 3) pendingResume = o.t;
       }
     } catch (e) {}
-    elFileName.textContent = (i + 1) + "/" + tracks.length + " · " + t.name;
+    try { localStorage.setItem("tl_bookpos_" + curBookId, JSON.stringify({ i: i })); } catch (e) {}
+    elFileName.textContent = "《" + curBookName + "》" + (i + 1) + "/" + tracks.length + " · " + t.name;
     // 自动配对同名字幕
     cues = srtMap[t.base] || [];
     activeIdx = -1;
@@ -819,7 +921,13 @@
     if (e.target === plOverlay) plOverlay.classList.add("hidden");
   });
 
-  btnPickSrt.addEventListener("click", function () { inputSrt.click(); });
+  $("btn-books").addEventListener("click", function () {
+    saveProgress();
+    elPlayer.classList.add("hidden");
+    elSetup.classList.remove("hidden");
+    refreshBooks();
+  });
+
   $("btn-srt").addEventListener("click", function () { inputSrt.click(); });
   inputSrt.addEventListener("change", function () {
     var files = Array.prototype.slice.call(inputSrt.files);
