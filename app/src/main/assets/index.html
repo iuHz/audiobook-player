@@ -62,7 +62,7 @@
     flex-direction: column;
     gap: 10px;
     width: 100%;
-    max-width: 340px;
+    max-width: 440px;
   }
   .book-row {
     display: flex;
@@ -232,6 +232,132 @@
   .chip.on { background: var(--accent-soft); border-color: var(--accent); color: var(--text); }
   select.chip { -webkit-appearance: none; appearance: none; padding-right: 10px; }
 
+  /* 播放器顶部工具栏 */
+  .toolbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 4px 16px 8px;
+    flex-shrink: 0;
+  }
+  .tbtn {
+    border: none;
+    background: var(--panel);
+    color: var(--text);
+    font-size: 14px;
+    padding: 9px 16px;
+    border-radius: 20px;
+    cursor: pointer;
+  }
+  .tbtn:active { background: var(--panel2); }
+
+  /* 通用底部弹层 */
+  .sheet-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.55);
+    z-index: 60;
+    display: flex;
+    align-items: flex-end;
+  }
+  .sheet {
+    background: var(--panel);
+    width: 100%;
+    max-width: 680px;
+    margin: 0 auto;
+    border-radius: 18px 18px 0 0;
+    padding: 10px 14px calc(18px + env(safe-area-inset-bottom));
+    max-height: 72vh;
+    overflow-y: auto;
+  }
+  .sheet-title { font-size: 16px; font-weight: 600; text-align: center; padding: 10px 0 6px; }
+  .sheet-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 15px 16px;
+    border-radius: 12px;
+    font-size: 16px;
+    color: var(--text);
+    cursor: pointer;
+    margin-top: 8px;
+    background: var(--panel2);
+  }
+  .sheet-item:active { opacity: 0.8; }
+  .sheet-item .ic { font-size: 20px; }
+  .sheet-item .desc { flex: 1; text-align: left; font-size: 13.5px; color: var(--text-dim); }
+  .sheet-item.danger { color: var(--danger); }
+  .sheet-input {
+    width: 100%;
+    margin-top: 12px;
+    background: var(--panel2);
+    border: 1.5px solid #3a3a44;
+    border-radius: 12px;
+    color: var(--text);
+    font-size: 17px;
+    padding: 13px 16px;
+    outline: none;
+  }
+  .sheet-input:focus { border-color: var(--accent); }
+  .sheet-actions { display: flex; gap: 10px; margin-top: 12px; }
+  .sheet-btn {
+    flex: 1;
+    padding: 14px;
+    border: none;
+    border-radius: 12px;
+    font-size: 16px;
+    font-weight: 600;
+    cursor: pointer;
+    background: var(--panel2);
+    color: var(--text);
+  }
+  .sheet-btn.primary { background: var(--accent); color: #fff; }
+  .sheet-btn.danger { background: rgba(255, 107, 107, 0.18); color: var(--danger); }
+  .sheet-quick { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+  .qchip {
+    flex: 1 1 30%;
+    min-width: 88px;
+    padding: 12px 0;
+    border-radius: 10px;
+    border: 1.5px solid #35353f;
+    background: transparent;
+    color: var(--text);
+    font-size: 15px;
+    cursor: pointer;
+  }
+  .qchip:active { background: var(--panel2); }
+
+  /* 书单卡片 */
+  .book-card {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 14px 16px;
+    border-radius: var(--radius);
+    background: var(--panel);
+    border: 1.5px solid #35353f;
+    cursor: pointer;
+    transition: transform 0.1s;
+    -webkit-touch-callout: none;
+    user-select: none;
+  }
+  .book-card:active { transform: scale(0.985); }
+  .book-card.current { border-color: var(--accent); }
+  .book-card .cover {
+    width: 46px; height: 46px;
+    border-radius: 12px;
+    background: var(--accent-soft);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 22px;
+    flex-shrink: 0;
+  }
+  .book-card .info { flex: 1; min-width: 0; text-align: left; }
+  .book-card .info .nm { font-size: 16px; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .book-card .info .sub { font-size: 12.5px; color: var(--text-dim); margin-top: 3px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .book-card .right { flex-shrink: 0; display: flex; flex-direction: column; align-items: flex-end; gap: 4px; }
+  .book-card .right .cnt { font-size: 12.5px; color: var(--text-dim); }
+  .book-card .right .live { font-size: 11px; color: var(--accent); font-weight: 600; }
+
   #sleep-display {
     font-size: 14px;
     color: var(--text);
@@ -375,15 +501,19 @@
   <div class="file-name" id="file-name">未选择文件</div>
 </header>
 
-<!-- 书单选择界面 -->
+<!-- 书架界面 -->
 <div id="setup">
-  <div class="tip">📚 我的书单<br><span style="font-size:13px">点书单继续听，或新建一个书单</span></div>
+  <div class="tip">📚 我的书架<br><span style="font-size:13px">点书单继续听 · 长按书单可重命名或删除</span></div>
   <div id="book-list"></div>
   <button class="big-btn primary" id="btn-pick">＋ 新建书单（选择音频，可多选）</button>
 </div>
 
 <!-- 播放器界面 -->
 <div id="player" class="hidden">
+  <div class="toolbar">
+    <button class="tbtn" id="btn-books">📚 书架</button>
+    <button class="tbtn" id="btn-list">☰ 本集列表</button>
+  </div>
   <div id="subtitle-list"></div>
 
   <div id="controls">
@@ -402,8 +532,6 @@
 
       <div class="sub-row">
         <button class="chip" id="btn-srt">📄 换字幕</button>
-        <button class="chip" id="btn-list">☰ 列表</button>
-        <button class="chip" id="btn-books">📚 书单</button>
         <select class="chip" id="speed" title="倍速">
           <option value="0.5">0.5x</option>
           <option value="0.75">0.75x</option>
@@ -477,6 +605,40 @@
     m.classList.add("show");
     clearTimeout(msgTimer);
     msgTimer = setTimeout(function () { m.classList.remove("show"); }, ms || 2600);
+  }
+
+  // ---------- 通用底部弹层 ----------
+  function openSheet(html) {
+    var ov = document.createElement("div");
+    ov.className = "sheet-overlay";
+    ov.innerHTML = '<div class="sheet">' + html + "</div>";
+    document.body.appendChild(ov);
+    ov.addEventListener("click", function (e) {
+      if (e.target === ov) ov.close();
+    });
+    ov.close = function () { ov.remove(); };
+    return ov;
+  }
+
+  function nameSheet(title, defVal, cb) {
+    var ov = openSheet(
+      '<div class="sheet-title">' + title + "</div>" +
+      '<input class="sheet-input" id="ninput" value="' + escapeHtml(defVal) + '">' +
+      '<div class="sheet-actions">' +
+        '<button class="sheet-btn" id="ncancel">取消</button>' +
+        '<button class="sheet-btn primary" id="nok">确定</button>' +
+      "</div>"
+    );
+    var input = ov.querySelector("#ninput");
+    setTimeout(function () { input.focus(); }, 120);
+    function done() {
+      var v = input.value.trim();
+      ov.close();
+      cb(v || null);
+    }
+    ov.querySelector("#nok").addEventListener("click", done);
+    ov.querySelector("#ncancel").addEventListener("click", function () { ov.close(); cb(null); });
+    input.addEventListener("keydown", function (e) { if (e.key === "Enter") done(); });
   }
 
   function fmt(t) {
@@ -667,6 +829,7 @@
   var db = null;
   var books = [];
   var bookCount = {};
+  var allTracks = {};
   var curBookId = null;
   var curBookName = "";
 
@@ -737,7 +900,14 @@
       return idbAll("tracks");
     }).then(function (all) {
       bookCount = {};
-      all.forEach(function (t) { bookCount[t.bookId] = (bookCount[t.bookId] || 0) + 1; });
+      allTracks = {};
+      all.forEach(function (t) {
+        bookCount[t.bookId] = (bookCount[t.bookId] || 0) + 1;
+        (allTracks[t.bookId] = allTracks[t.bookId] || []).push(t);
+      });
+      Object.keys(allTracks).forEach(function (k) {
+        allTracks[k].sort(function (a, b) { return (a.order || 0) - (b.order || 0); });
+      });
       renderBookList();
     });
   }
@@ -749,15 +919,29 @@
     try { lastId = parseInt(localStorage.getItem("tl_lastbook") || "0", 10) || 0; } catch (e) {}
     var frag = document.createDocumentFragment();
     books.forEach(function (b) {
-      var row = document.createElement("div");
-      row.className = "book-row" + (b.id === curBookId ? " current" : "");
-      var live = b.id === curBookId ? '<span class="bk-live">▶ 正在播</span>' : "";
-      row.innerHTML = '<span class="bk-name">' + escapeHtml(b.name) + "</span>" +
-                      live +
-                      '<span class="bk-count">' + (bookCount[b.id] || 0) + " 集</span>";
-      row.addEventListener("click", function () {
+      var card = document.createElement("div");
+      card.className = "book-card" + (b.id === curBookId ? " current" : "");
+      var sub = "还没听过";
+      var cnt = bookCount[b.id] || 0;
+      try {
+        var pos = JSON.parse(localStorage.getItem("tl_bookpos_" + b.id) || "null");
+        if (pos && pos.i >= 0 && allTracks[b.id] && allTracks[b.id][pos.i]) {
+          var t = allTracks[b.id][pos.i];
+          var pr = JSON.parse(localStorage.getItem(saveKey(t.base)) || "null");
+          var pct = pr && pr.d ? Math.min(100, Math.round(pr.t / pr.d * 100)) : 0;
+          sub = "听到第 " + (pos.i + 1) + " 集" + (pct ? " · " + pct + "%" : "");
+        }
+      } catch (e) {}
+      card.innerHTML =
+        '<span class="cover">📖</span>' +
+        '<span class="info"><div class="nm">' + escapeHtml(b.name) + "</div>" +
+        '<div class="sub">' + sub + "</div></span>" +
+        '<span class="right"><span class="cnt">' + cnt + " 集</span>" +
+        (b.id === curBookId ? '<span class="live">▶ 正在播</span>' : "") + "</span>";
+      var lpTimer = null, lpFired = false;
+      card.addEventListener("click", function () {
+        if (lpFired) { lpFired = false; return; }
         if (b.id === curBookId) {
-          // 回到正在播的这个书单，不打断播放
           elSetup.classList.add("hidden");
           elPlayer.classList.remove("hidden");
         } else {
@@ -765,9 +949,88 @@
           openBook(b.id);
         }
       });
-      frag.appendChild(row);
+      // 长按 → 管理（重命名 / 删除）；桌面右键同样触发
+      card.addEventListener("touchstart", function () {
+        lpFired = false;
+        lpTimer = setTimeout(function () { lpFired = true; bookManage(b); }, 550);
+      }, { passive: true });
+      card.addEventListener("touchend", function () { clearTimeout(lpTimer); });
+      card.addEventListener("touchmove", function () { clearTimeout(lpTimer); }, { passive: true });
+      card.addEventListener("contextmenu", function (e) { e.preventDefault(); bookManage(b); });
+      frag.appendChild(card);
     });
     el.appendChild(frag);
+  }
+
+  // ---------- 书单管理（重命名 / 删除） ----------
+  function bookManage(b) {
+    var ov = openSheet(
+      '<div class="sheet-title">' + escapeHtml(b.name) + "</div>" +
+      '<div class="sheet-item"><span class="ic">✏️</span><span>重命名</span></div>' +
+      '<div class="sheet-item danger"><span class="ic">🗑️</span><span>删除书单</span></div>'
+    );
+    var items = ov.querySelectorAll(".sheet-item");
+    items[0].addEventListener("click", function () {
+      ov.close();
+      nameSheet("重命名书单", b.name, function (name) {
+        if (!name) return;
+        idbPut("books", { id: b.id, name: name }).then(refreshBooks);
+        if (b.id === curBookId) curBookName = name;
+        showMsg("已重命名");
+      });
+    });
+    items[1].addEventListener("click", function () {
+      ov.close();
+      confirmDelete(b);
+    });
+  }
+
+  function confirmDelete(b) {
+    var ov = openSheet(
+      '<div class="sheet-title">删除「' + escapeHtml(b.name) + '」？</div>' +
+      '<div class="sheet-item" style="background:transparent;padding:4px 16px;"><span class="desc">该书单的所有音频和进度将无法恢复。</span></div>' +
+      '<div class="sheet-actions">' +
+        '<button class="sheet-btn" id="dcancel">再想想</button>' +
+        '<button class="sheet-btn danger" id="dok">删除</button>' +
+      "</div>"
+    );
+    ov.querySelector("#dok").addEventListener("click", function () {
+      ov.close();
+      deleteBook(b.id);
+    });
+    ov.querySelector("#dcancel").addEventListener("click", function () { ov.close(); });
+  }
+
+  function deleteBook(id) {
+    idbAll("tracks").then(function (all) {
+      var keys = all.filter(function (t) { return t.bookId === id; }).map(function (t) { return t.id; });
+      return new Promise(function (res) {
+        if (!db || !keys.length) return res();
+        var tx = db.transaction("tracks", "readwrite");
+        keys.forEach(function (k) { tx.objectStore("tracks").delete(k); });
+        tx.oncomplete = function () { res(); };
+        tx.onerror = function () { res(); };
+      });
+    }).then(function () {
+      return new Promise(function (res) {
+        if (!db) return res();
+        var tx = db.transaction("books", "readwrite");
+        tx.objectStore("books").delete(id);
+        tx.oncomplete = function () { res(); };
+        tx.onerror = function () { res(); };
+      });
+    }).then(function () {
+      if (curBookId === id) {
+        curBookId = null; curBookName = ""; curTrack = -1; tracks = [];
+        audio.pause();
+        audio.removeAttribute("src");
+        elPlayer.classList.add("hidden");
+        elSetup.classList.remove("hidden");
+      }
+      try { localStorage.removeItem("tl_bookpos_" + id); } catch (e) {}
+      refreshBooks();
+      showMsg("书单已删除");
+    });
   }
 
   function openBook(id) {
@@ -810,31 +1073,31 @@
     var files = Array.prototype.slice.call(inputAudio.files);
     if (!files.length) return;
     var defaultName = files[0].name.replace(/\.[^.]+$/, "");
-    var name = prompt("给这个书单起个名字：", defaultName);
-    if (name === null) return; // 用户取消
-    name = name.trim() || defaultName;
-    var bookId = Date.now();
-    idbPut("books", { id: bookId, name: name }).then(function () {
-      var chain = Promise.resolve();
-      files.forEach(function (f, i) {
-        chain = chain.then(function () {
-          return idbPut("tracks", {
-            bookId: bookId,
-            name: f.name,
-            base: f.name.replace(/\.[^.]+$/, ""),
-            blob: f,
-            order: i
+    nameSheet("给这个书单起个名字", defaultName, function (name) {
+      if (!name) return;
+      var bookId = Date.now();
+      idbPut("books", { id: bookId, name: name }).then(function () {
+        var chain = Promise.resolve();
+        files.forEach(function (f, i) {
+          chain = chain.then(function () {
+            return idbPut("tracks", {
+              bookId: bookId,
+              name: f.name,
+              base: f.name.replace(/\.[^.]+$/, ""),
+              blob: f,
+              order: i
+            });
           });
         });
+        return chain;
+      }).then(function () {
+        showMsg("书单「" + name + "」已创建");
+        return refreshBooks();
+      }).then(function () {
+        return openBook(bookId);
+      }).then(function () {
+        setTimeout(function () { inputSrt.click(); }, 400);
       });
-      return chain;
-    }).then(function () {
-      showMsg("书单「" + name + "」已创建");
-      return refreshBooks();
-    }).then(function () {
-      return openBook(bookId);
-    }).then(function () {
-      setTimeout(function () { inputSrt.click(); }, 400);
     });
   });
 
@@ -1090,11 +1353,32 @@
   }
 
   btnSleep.addEventListener("click", function () {
-    var v = prompt("定时关闭：输入分钟数（如 30），或直接确定使用 30 分钟", "30");
-    if (v === null) return;
-    var n = parseFloat(v);
-    if (!isFinite(n) || n <= 0) { showMsg("请输入有效的分钟数"); return; }
-    startSleep(n);
+    var ov = openSheet(
+      '<div class="sheet-title">⏰ 定时关闭</div>' +
+      '<div class="sheet-quick">' +
+        [15, 30, 45, 60].map(function (m) {
+          return '<button class="qchip" data-m="' + m + '">' + m + " 分钟</button>";
+        }).join("") +
+      "</div>" +
+      '<input class="sheet-input" id="sinput" type="number" inputmode="numeric" placeholder="或输入自定义分钟数" value="30">' +
+      '<div class="sheet-actions">' +
+        '<button class="sheet-btn" id="scancel">取消</button>' +
+        '<button class="sheet-btn primary" id="sstart">开始</button>' +
+      "</div>"
+    );
+    function pick(m) {
+      ov.close();
+      startSleep(m);
+    }
+    ov.querySelectorAll(".qchip").forEach(function (b) {
+      b.addEventListener("click", function () { pick(parseInt(b.dataset.m, 10)); });
+    });
+    ov.querySelector("#sstart").addEventListener("click", function () {
+      var n = parseFloat(ov.querySelector("#sinput").value);
+      if (!isFinite(n) || n <= 0) { showMsg("请输入有效的分钟数"); return; }
+      pick(Math.round(n));
+    });
+    ov.querySelector("#scancel").addEventListener("click", function () { ov.close(); });
   });
   btnSleepAdd.addEventListener("click", function () {
     if (!sleepDeadline) return;
