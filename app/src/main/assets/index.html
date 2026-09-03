@@ -288,7 +288,7 @@
 
   .transport {
     display: flex; align-items: center; justify-content: center;
-    gap: 20px; padding: 10px 0 4px;
+    gap: 10px; padding: 10px 0 4px;
   }
   .tbtn {
     border: none; cursor: pointer;
@@ -298,7 +298,7 @@
     -webkit-touch-callout: none; user-select: none;
   }
   .tbtn.side {
-    width: 60px; height: 60px; border-radius: 999px;
+    width: 56px; height: 60px; border-radius: 999px;
     background: var(--panel-2);
     border: 1px solid var(--line);
     gap: 1px;
@@ -306,6 +306,12 @@
   .tbtn.side svg { width: 21px; height: 21px; }
   .tbtn.side .lbl { font-size: 9.5px; font-weight: 600; color: var(--ink-3); letter-spacing: .04em; }
   .tbtn.side:active { transform: scale(.93); background: var(--panel-3); color: var(--ink); }
+  .tbtn.skip {
+    width: 44px; height: 60px; border-radius: 16px;
+    background: transparent; border: none;
+  }
+  .tbtn.skip svg { width: 24px; height: 24px; }
+  .tbtn.skip:active { transform: scale(.88); background: var(--panel-2); color: var(--ink); }
   .tbtn.main {
     width: 76px; height: 76px; border-radius: 999px;
     background: linear-gradient(180deg, var(--amber-hi) 0%, var(--amber) 100%);
@@ -334,23 +340,6 @@
   .tool svg { width: 17px; height: 17px; }
   .tool:active { background: var(--panel-3); color: var(--ink); }
   .tool.on { color: var(--amber-hi); border-color: rgba(226,174,92,.4); background: var(--amber-soft); }
-  select.tool {
-    padding: 0 30px 0 8px;
-    text-align: center;
-    text-align-last: center;
-    background: transparent;
-  }
-  select.tool option { background: var(--panel-2); color: var(--ink); }
-  .sel-wrap { position: relative; display: flex; align-items: center; }
-  .sel-wrap select.tool { width: 100%; height: 100%; border: none; border-radius: 0; background: transparent; color: var(--ink-2); font-size: 13.5px; font-weight: 600; padding: 0 30px 0 8px; }
-  .sel-wrap::after {
-    content: ""; position: absolute; right: 15px; top: 50%;
-    width: 7px; height: 7px; margin-top: -5px;
-    border-right: 1.6px solid var(--ink-3);
-    border-bottom: 1.6px solid var(--ink-3);
-    transform: rotate(45deg);
-    pointer-events: none;
-  }
 
   /* ---------- 悬浮：睡眠胶囊 ---------- */
   #sleep-pill {
@@ -509,6 +498,9 @@
   }
   .qchip:active { transform: scale(.96); background: var(--panel-3); }
   .qchip b { display: block; font-size: 19px; font-weight: 750; color: var(--ink); margin-bottom: 1px; }
+  .sheet-quick.cols3 { grid-template-columns: repeat(3, 1fr); }
+  .qchip.cur { border-color: rgba(226,174,92,.45); background: var(--amber-soft); }
+  .qchip.cur b { color: var(--amber-hi); }
 
   /* ---------- 播放列表弹层 ---------- */
   #pl-panel { display: flex; flex-direction: column; padding: 8px 12px calc(10px + env(safe-area-inset-bottom, 0px)); }
@@ -651,9 +643,15 @@
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/></svg>
           <span class="lbl">15秒</span>
         </button>
+        <button type="button" class="tbtn skip" id="btn-prev" aria-label="上一集">
+          <svg viewBox="0 0 24 24" fill="currentColor"><path d="M6.5 5.5a1 1 0 0 1 2 0v13a1 1 0 0 1-2 0zM19.06 5.62 10.9 11.1a.75.75 0 0 0 0 1.24l8.16 5.48a.75.75 0 0 0 1.17-.62V6.24a.75.75 0 0 0-1.17-.62z"/></svg>
+        </button>
         <button type="button" class="tbtn main" id="btn-play" aria-label="播放 / 暂停">
           <svg class="i-play" viewBox="0 0 24 24"><path fill="currentColor" d="M8 5.14v13.72a.7.7 0 0 0 1.06.6l11.1-6.86a.7.7 0 0 0 0-1.2L9.06 4.54A.7.7 0 0 0 8 5.14z"/></svg>
           <svg class="i-pause" viewBox="0 0 24 24"><path fill="currentColor" d="M7.2 5h3.3v14H7.2zM13.5 5h3.3v14h-3.3z"/></svg>
+        </button>
+        <button type="button" class="tbtn skip" id="btn-next" aria-label="下一集">
+          <svg viewBox="0 0 24 24" fill="currentColor"><path d="M15.5 5.5a1 1 0 0 1 2 0v13a1 1 0 0 1-2 0zM4.94 5.62 13.1 11.1a.75.75 0 0 1 0 1.24l-8.16 5.48a.75.75 0 0 1-1.17-.62V6.24a.75.75 0 0 1 1.17-.62z"/></svg>
         </button>
         <button type="button" class="tbtn side" id="btn-fwd" aria-label="前进 15 秒">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.13-9.36L23 10"/></svg>
@@ -666,16 +664,10 @@
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2.8h8.2L18.2 7v13.4a.8.8 0 0 1-.8.8H6a.8.8 0 0 1-.8-.8V3.6a.8.8 0 0 1 .8-.8z"/><path d="M13.6 2.9v4.4h4.5M9 12.5h6M9 16h4"/></svg>
           <span>字幕</span>
         </button>
-        <div class="sel-wrap tool">
-          <select id="speed" title="倍速" aria-label="播放倍速">
-            <option value="0.5">0.5x 慢速</option>
-            <option value="0.75">0.75x</option>
-            <option value="1" selected>1.0x 正常</option>
-            <option value="1.25">1.25x</option>
-            <option value="1.5">1.5x</option>
-            <option value="2">2.0x</option>
-          </select>
-        </div>
+        <button type="button" class="tool" id="btn-speed" aria-label="播放倍速">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2.5 4.2 13.4a.6.6 0 0 0 .47.98h6.13l-.8 6.62a.55.55 0 0 0 .98.42l8.82-10.9a.6.6 0 0 0-.47-.98h-6.13l.8-6.62a.55.55 0 0 0-.98-.42z"/></svg>
+          <span id="speed-label">1.0x</span>
+        </button>
         <button type="button" class="tool" id="btn-sleep">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.8A8.5 8.5 0 1 1 11.2 3a6.6 6.6 0 0 0 9.8 9.8z"/></svg>
           <span>定时</span>
@@ -747,7 +739,8 @@
 
   var btnPlay = $("btn-play"), seek = $("seek");
   var tCur = $("t-cur"), tTotal = $("t-total");
-  var speedSel = $("speed");
+  var btnSpeed = $("btn-speed"), speedLabel = $("speed-label");
+  var curSpeed = "1";
   var btnSleep = $("btn-sleep"), sleepPill = $("sleep-pill"), spTime = $("sp-time");
   var btnSleepAdd = $("btn-sleep-add"), btnSleepCancel = $("btn-sleep-cancel");
 
@@ -999,7 +992,7 @@
     } catch (e) {}
   }
   function saveSettings() {
-    try { localStorage.setItem("tl_speed", speedSel.value); } catch (e) {}
+    try { localStorage.setItem("tl_speed", curSpeed); } catch (e) {}
   }
   // 切后台 / 关页面时也存一次
   window.addEventListener("pagehide", saveProgress);
@@ -1459,18 +1452,48 @@
 
   $("btn-back").addEventListener("click", function () { audio.currentTime = Math.max(0, audio.currentTime - 15); });
   $("btn-fwd").addEventListener("click", function () { audio.currentTime = Math.min(audio.duration || 0, audio.currentTime + 15); });
+  $("btn-prev").addEventListener("click", function () {
+    if (curTrack < 0 || !tracks.length) return;
+    if (audio.currentTime > 3 || curTrack === 0) {
+      audio.currentTime = 0;
+      showMsg(curTrack === 0 ? "已经是第一集，本集从头播放" : "本集从头播放");
+    } else {
+      playTrack(curTrack - 1);
+    }
+  });
+  $("btn-next").addEventListener("click", function () {
+    if (curTrack < 0 || !tracks.length) return;
+    if (curTrack >= tracks.length - 1) { showMsg("已经是最后一集了"); return; }
+    playTrack(curTrack + 1);
+  });
 
-  speedSel.addEventListener("change", function () {
-    audio.playbackRate = parseFloat(speedSel.value);
+  var SPEEDS = [0.5, 0.75, 1, 1.25, 1.5, 2];
+  function applySpeed(v) {
+    curSpeed = String(parseFloat(v));
+    audio.playbackRate = parseFloat(v);
+    if (speedLabel) speedLabel.textContent = parseFloat(v) === 1 ? "1.0x" : parseFloat(v) + "x";
     saveSettings();
+  }
+  btnSpeed.addEventListener("click", function () {
+    var ov = openSheet(
+      '<div class="sheet-title">播放倍速<span class="sc">点选即生效，自动记住</span></div>' +
+      '<div class="sheet-quick cols3">' +
+        SPEEDS.map(function (v) {
+          var lbl = v === 1 ? "1.0x" : v + "x";
+          var sub = v === 1 ? "正常" : (v < 1 ? "慢速" : "快速");
+          var on = String(v) === curSpeed ? " cur" : "";
+          return '<button class="qchip' + on + '" data-v="' + v + '"><b>' + lbl + "</b>" + sub + "</button>";
+        }).join("") +
+      "</div>"
+    );
+    ov.querySelectorAll(".qchip").forEach(function (b) {
+      b.addEventListener("click", function () { applySpeed(b.dataset.v); ov.close(); });
+    });
   });
   // 恢复上次的倍速设置
   try {
     var savedSpeed = localStorage.getItem("tl_speed");
-    if (savedSpeed && parseFloat(savedSpeed) > 0) {
-      speedSel.value = savedSpeed;
-      audio.playbackRate = parseFloat(savedSpeed);
-    }
+    if (savedSpeed && parseFloat(savedSpeed) > 0) applySpeed(savedSpeed);
   } catch (e) {}
 
   seek.addEventListener("input", function () {
