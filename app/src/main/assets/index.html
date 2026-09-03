@@ -8,565 +8,719 @@
 <style>
   * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
   :root {
-    --bg: #141418;
-    --panel: #1e1e24;
-    --panel2: #26262e;
-    --text: #e8e8ec;
-    --text-dim: #9a9aa6;
-    --accent: #5b8cff;
-    --accent-soft: rgba(91, 140, 255, 0.18);
-    --danger: #ff6b6b;
-    --radius: 14px;
+    --bg0: #07080B;            /* deepest, desktop outer */
+    --bg: #0B0D12;             /* app base */
+    --panel: #12151C;          /* raised surface */
+    --panel-2: #1A1E27;        /* higher surface */
+    --panel-3: #242A36;        /* hover / pressed */
+    --line: rgba(255,255,255,.07);
+    --line-2: rgba(255,255,255,.16);
+    --ink: #F2EFE6;            /* primary text, warm off-white */
+    --ink-2: #B8B3A8;          /* secondary */
+    --ink-3: #7E7B72;          /* tertiary */
+    --amber: #E2AE5C;          /* single accent: moonlight amber */
+    --amber-hi: #F2CA85;
+    --amber-soft: rgba(226,174,92,.16);
+    --amber-softer: rgba(226,174,92,.07);
+    --danger: #E46962;
+    --danger-soft: rgba(228,105,98,.14);
+    --r-sm: 10px; --r-md: 14px; --r-lg: 20px;
+    --shadow-1: 0 6px 18px rgba(0,0,0,.35);
+    --shadow-2: 0 12px 34px rgba(0,0,0,.45);
+    --font: -apple-system, BlinkMacSystemFont, "PingFang SC", "HarmonyOS Sans SC", "MiSans", "Noto Sans CJK SC", "Microsoft YaHei", system-ui, sans-serif;
+    --num: "SF Mono", ui-monospace, "Cascadia Mono", "Roboto Mono", Menlo, Consolas, monospace;
   }
   html, body { height: 100%; }
   body {
-    background: var(--bg);
-    color: var(--text);
-    font-family: -apple-system, "PingFang SC", "Microsoft YaHei", "Noto Sans SC", sans-serif;
-    display: flex;
-    flex-direction: column;
+    background:
+      radial-gradient(120% 70% at 50% -20%, #161A23 0%, var(--bg) 48%, var(--bg0) 100%);
+    color: var(--ink);
+    font-family: var(--font);
     overflow: hidden;
+    -webkit-font-smoothing: antialiased;
+    font-size: 15px;
   }
-
-  header {
-    padding: 14px 16px 8px;
-    text-align: center;
-    flex-shrink: 0;
-  }
-  header h1 { font-size: 18px; font-weight: 600; }
-  header .file-name {
-    font-size: 13px;
-    color: var(--text-dim);
-    margin-top: 4px;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    max-width: 90vw;
-    margin-left: auto; margin-right: auto;
-  }
-
-  /* ---- 书单选择区 ---- */
-  #setup {
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 14px;
-    padding: 20px 24px 48px;
-    overflow-y: auto;
-    text-align: center;
-  }
-  #setup .tip { color: var(--text-dim); font-size: 15px; line-height: 1.8; }
-  #book-list {
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
-    width: 100%;
-    max-width: 440px;
-  }
-  .book-row {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    padding: 15px 18px;
-    border-radius: var(--radius);
-    background: var(--panel);
-    border: 1.5px solid #35353f;
-    color: var(--text);
-    font-size: 16px;
-    cursor: pointer;
-    transition: transform 0.1s;
-  }
-  .book-row:active { transform: scale(0.98); }
-  .book-row .bk-name {
-    flex: 1;
-    text-align: left;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-    font-weight: 600;
-  }
-  .book-row .bk-count { flex-shrink: 0; color: var(--text-dim); font-size: 13.5px; }
-  .book-row .bk-live { flex-shrink: 0; color: var(--accent); font-size: 12px; }
-  .book-row.current { border-color: var(--accent); background: var(--accent-soft); }
-  .big-btn {
-    display: block;
-    width: 100%;
-    max-width: 340px;
-    padding: 18px 20px;
-    font-size: 17px;
-    font-weight: 600;
-    color: var(--text);
-    background: var(--panel);
-    border: 1.5px solid #35353f;
-    border-radius: var(--radius);
-    cursor: pointer;
-    transition: transform 0.1s, border-color 0.2s;
-  }
-  .big-btn:active { transform: scale(0.97); }
-  .big-btn.primary {
-    background: var(--accent);
-    border-color: var(--accent);
-    color: #fff;
-  }
+  button { font-family: inherit; }
   .hidden { display: none !important; }
 
-  /* ---- 播放器主体 ---- */
-  #player { flex: 1; display: flex; flex-direction: column; min-height: 0; }
+  /* ---------- 页面容器 ---------- */
+  .screen {
+    position: absolute; top: 0; bottom: 0; left: 0; right: 0;
+    margin: 0 auto; max-width: 680px;
+    display: flex; flex-direction: column; min-height: 0;
+  }
 
-  #subtitle-list {
-    flex: 1;
-    overflow-y: auto;
-    padding: 12px 14px 24px;
+  /* ================= 书架 ================= */
+  .shelf-head {
+    flex-shrink: 0;
+    display: flex; align-items: flex-end; justify-content: space-between;
+    gap: 12px;
+    padding: calc(16px + env(safe-area-inset-top, 0px)) 20px 12px;
+  }
+  .shelf-titles { min-width: 0; }
+  .shelf-title {
+    font-size: 27px; font-weight: 800; letter-spacing: .01em;
+    line-height: 1.15; color: var(--ink);
+  }
+  .shelf-title em { font-style: normal; color: var(--amber-hi); }
+  .shelf-sub { font-size: 12.5px; color: var(--ink-3); margin-top: 5px; line-height: 1.5; }
+  #shelf-list-scroll { flex: 1; overflow-y: auto; min-height: 0; padding: 6px 16px 28px; -webkit-overflow-scrolling: touch; }
+  .shelf-list {
+    display: flex; flex-direction: column; gap: 12px;
+    max-width: 560px; margin: 0 auto;
+  }
+
+  .book-card {
+    position: relative;
+    display: flex; align-items: center; gap: 14px;
+    padding: 13px 14px 13px 12px;
+    border-radius: var(--r-lg);
+    background: linear-gradient(180deg, var(--panel) 0%, rgba(18,21,28,.55) 100%);
+    border: 1px solid var(--line);
+    cursor: pointer;
+    -webkit-touch-callout: none; user-select: none;
+    transition: transform .12s ease, border-color .2s ease, background .2s ease;
+    overflow: hidden;
+  }
+  .book-card:active { transform: scale(.985); }
+  .book-card.current {
+    border-color: rgba(226,174,92,.42);
+    background: linear-gradient(180deg, rgba(226,174,92,.09) 0%, var(--panel) 100%);
+  }
+  .book-card .cover {
+    flex-shrink: 0; width: 58px; height: 58px;
+    border-radius: 16px;
+    display: flex; align-items: center; justify-content: center;
+    box-shadow: inset 0 1px 0 rgba(255,255,255,.08), 0 6px 14px rgba(0,0,0,.3);
+    position: relative; overflow: hidden;
+  }
+  .book-card .cover::after {
+    content: ""; position: absolute; inset: 0;
+    background: radial-gradient(90% 60% at 30% 8%, rgba(255,255,255,.16), transparent 60%);
+    pointer-events: none;
+  }
+  .book-card .cover b {
+    font-size: 26px; font-weight: 700; color: rgba(255,250,240,.96);
+    text-shadow: 0 1px 2px rgba(0,0,0,.3);
+    letter-spacing: 0;
+  }
+  .book-card .info { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 5px; }
+  .book-card .nm {
+    font-size: 16px; font-weight: 650; color: var(--ink);
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  }
+  .book-card .meta {
+    display: flex; align-items: center; gap: 7px;
+    font-size: 12.5px; color: var(--ink-3);
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+  .book-card .meta .dot { width: 5px; height: 5px; border-radius: 50%; background: var(--ink-3); flex-shrink: 0; }
+  .book-card .meta .dot.live { background: var(--amber); box-shadow: 0 0 0 3px var(--amber-soft); }
+  .book-card .prog {
+    height: 3px; border-radius: 2px; background: var(--panel-3);
+    overflow: hidden; width: 100%;
+  }
+  .book-card .prog i { display: block; height: 100%; border-radius: 2px; background: linear-gradient(90deg, var(--amber), var(--amber-hi)); }
+  .book-card .live-tag {
+    position: absolute; top: 10px; right: 12px;
+    display: inline-flex; align-items: center; gap: 5px;
+    font-size: 11px; font-weight: 600; color: var(--amber-hi);
+    background: var(--amber-soft); border: 1px solid rgba(226,174,92,.28);
+    padding: 3px 9px; border-radius: 999px;
+  }
+  .book-card .live-tag i {
+    width: 6px; height: 6px; border-radius: 50%; background: var(--amber);
+    animation: livePulse 1.4s ease-in-out infinite;
+  }
+  @keyframes livePulse { 0%,100% { opacity: 1; } 50% { opacity: .35; } }
+
+  .empty-state {
+    display: flex; flex-direction: column; align-items: center;
+    text-align: center; gap: 6px;
+    padding: 84px 28px 40px;
+    max-width: 420px; margin: 0 auto;
+  }
+  .empty-state .es-ic {
+    width: 76px; height: 76px; border-radius: 26px;
+    background: var(--amber-softer); border: 1px solid var(--line);
+    display: flex; align-items: center; justify-content: center;
+    color: var(--amber); margin-bottom: 12px;
+    box-shadow: inset 0 1px 0 rgba(255,255,255,.05);
+  }
+  .empty-state .es-ic svg { width: 34px; height: 34px; }
+  .empty-state .es-t { font-size: 18px; font-weight: 700; color: var(--ink); }
+  .empty-state .es-d { font-size: 13.5px; color: var(--ink-3); line-height: 1.8; margin-bottom: 20px; }
+
+  /* ================= 按钮体系 ================= */
+  .btn-primary {
+    display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+    border: none; cursor: pointer;
+    font-size: 14.5px; font-weight: 700; color: #241A08;
+    background: linear-gradient(180deg, var(--amber-hi) 0%, var(--amber) 100%);
+    border-radius: 999px;
+    padding: 11px 18px;
+    box-shadow: 0 8px 20px -6px rgba(226,174,92,.5), inset 0 1px 0 rgba(255,255,255,.35);
+    transition: transform .12s ease, box-shadow .2s ease;
+    flex-shrink: 0;
+  }
+  .btn-primary:active { transform: scale(.97); }
+  .btn-primary svg { width: 18px; height: 18px; }
+  .btn-ghost {
+    display: inline-flex; align-items: center; justify-content: center;
+    gap: 6px; cursor: pointer;
+    font-size: 14px; font-weight: 600; color: var(--ink-2);
+    background: var(--panel-2); border: 1px solid var(--line-2);
+    border-radius: 999px; padding: 10px 18px;
+    transition: background .15s ease, color .15s ease, transform .12s ease;
+  }
+  .btn-ghost:active { transform: scale(.97); background: var(--panel-3); color: var(--ink); }
+
+  /* ================= 播放器 ================= */
+  .ply-head {
+    flex-shrink: 0;
+    display: grid; grid-template-columns: 44px 1fr 44px;
+    align-items: center; gap: 6px;
+    padding: calc(8px + env(safe-area-inset-top, 0px)) 14px 4px;
+  }
+  .icon-btn {
+    width: 44px; height: 44px; border: none; border-radius: 999px;
+    background: transparent; color: var(--ink-2);
+    display: flex; align-items: center; justify-content: center;
+    cursor: pointer;
+    transition: background .15s ease, color .15s ease;
+  }
+  .icon-btn:active { background: var(--panel-3); color: var(--ink); }
+  .ply-meta { min-width: 0; text-align: center; display: flex; flex-direction: column; gap: 1px; }
+  .ply-meta .ply-book {
+    font-size: 11px; color: var(--ink-3); font-weight: 500;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+  .ply-meta .ply-file {
+    font-size: 14px; font-weight: 650; color: var(--ink);
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+
+  /* ---------- 字幕（transcript） ---------- */
+  .transcript {
+    flex: 1; min-height: 0; overflow-y: auto;
+    padding: 14px 18px 26px;
     scroll-behavior: smooth;
     -webkit-overflow-scrolling: touch;
   }
   .cue {
-    padding: 13px 16px;
-    margin: 0 auto 10px;
-    max-width: 680px;
-    font-size: 17px;
-    line-height: 1.75;
-    border-radius: 12px;
+    max-width: 600px; margin: 0 auto 9px;
+    padding: 12px 16px;
+    font-size: 16.5px; line-height: 1.85;
+    border-radius: var(--r-md);
+    border-left: 3px solid transparent;
     background: transparent;
-    color: var(--text-dim);
+    color: var(--ink-3);
     cursor: pointer;
-    transition: background 0.25s, color 0.25s;
-    user-select: none;
+    user-select: none; -webkit-user-select: none;
+    transition: background .25s ease, color .25s ease, border-color .25s ease, transform .12s ease;
   }
-  .cue:active { background: var(--panel2); }
+  .cue:active { background: var(--panel-2); }
   .cue.active {
-    background: var(--accent-soft);
-    color: var(--text);
-    font-weight: 600;
-    border-left: 3px solid var(--accent);
+    background: linear-gradient(90deg, var(--amber-soft) 0%, var(--amber-softer) 100%);
+    border-left-color: var(--amber);
+    color: var(--ink);
+    font-weight: 550;
   }
+  .cue-hint {
+    max-width: 560px; margin: 30px auto 0;
+    display: flex; flex-direction: column; align-items: center; gap: 8px;
+    text-align: center; padding: 30px 24px;
+    border: 1px dashed var(--line-2); border-radius: var(--r-lg);
+  }
+  .cue-hint .ch-ic {
+    width: 54px; height: 54px; border-radius: 18px;
+    background: var(--amber-softer); color: var(--amber);
+    display: flex; align-items: center; justify-content: center;
+    margin-bottom: 4px;
+  }
+  .cue-hint .ch-ic svg { width: 26px; height: 26px; }
+  .cue-hint .ch-t { font-size: 15.5px; font-weight: 650; color: var(--ink-2); }
+  .cue-hint .ch-d { font-size: 13px; color: var(--ink-3); line-height: 1.7; margin-bottom: 6px; }
 
-  /* ---- 控制面板 ---- */
-  #controls {
+  /* ---------- 底部控制台 ---------- */
+  .dock {
     flex-shrink: 0;
-    background: var(--panel);
-    border-top: 1px solid #2c2c34;
-    padding: 10px 16px calc(14px + env(safe-area-inset-bottom));
+    background: linear-gradient(180deg, rgba(11,13,18,.72) 0%, var(--bg) 26%);
+    backdrop-filter: blur(18px);
+    -webkit-backdrop-filter: blur(18px);
+    padding: 2px 20px calc(12px + env(safe-area-inset-bottom, 0px));
+    border-top: 1px solid var(--line);
   }
-  .ctl-inner { max-width: 680px; margin: 0 auto; }
+  .dock-in { max-width: 600px; margin: 0 auto; }
 
   #seek {
-    width: 100%;
-    height: 34px;
-    -webkit-appearance: none;
-    appearance: none;
-    background: transparent;
-    cursor: pointer;
+    width: 100%; height: 30px;
+    -webkit-appearance: none; appearance: none;
+    background: transparent; cursor: pointer; display: block;
+    margin: 0;
   }
   #seek::-webkit-slider-runnable-track {
-    height: 6px;
-    border-radius: 3px;
-    background: linear-gradient(to right, var(--accent) var(--fill, 0%), #3a3a44 var(--fill, 0%));
+    height: 5px; border-radius: 3px;
+    background: linear-gradient(to right, var(--amber) var(--fill, 0%), var(--panel-3) var(--fill, 0%));
   }
   #seek::-webkit-slider-thumb {
     -webkit-appearance: none;
-    width: 20px; height: 20px;
-    border-radius: 50%;
-    background: #fff;
-    margin-top: -7px;
-    box-shadow: 0 1px 4px rgba(0,0,0,0.5);
-  }
-  .time-row {
-    display: flex;
-    justify-content: space-between;
-    font-size: 12.5px;
-    color: var(--text-dim);
-    margin-top: -6px;
-    font-variant-numeric: tabular-nums;
-  }
-
-  .btn-row {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 14px;
-    margin-top: 10px;
-  }
-  .ctl-btn {
-    min-width: 52px;
-    height: 52px;
+    width: 18px; height: 18px; border-radius: 50%;
+    background: var(--ink);
+    margin-top: -6.5px;
     border: none;
-    border-radius: 50%;
-    background: var(--panel2);
-    color: var(--text);
-    font-size: 21px;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    transition: transform 0.1s;
+    box-shadow: 0 1px 5px rgba(0,0,0,.5);
+    transition: transform .12s ease;
   }
-  .ctl-btn:active { transform: scale(0.92); }
-  .ctl-btn.main {
-    width: 72px; height: 72px;
-    background: var(--accent);
-    color: #fff;
-    font-size: 30px;
-    box-shadow: 0 4px 16px rgba(91, 140, 255, 0.35);
+  #seek:active::-webkit-slider-thumb { transform: scale(1.15); }
+  #seek::-moz-range-track { height: 5px; border-radius: 3px; background: var(--panel-3); }
+  #seek::-moz-range-progress { height: 5px; border-radius: 3px; background: var(--amber); }
+  #seek::-moz-range-thumb { width: 18px; height: 18px; border-radius: 50%; background: var(--ink); border: none; }
+  .time-row {
+    display: flex; justify-content: space-between;
+    margin: -4px 2px 0;
+    font-size: 12px; color: var(--ink-3);
+    font-family: var(--num);
+    font-variant-numeric: tabular-nums;
+    letter-spacing: .02em;
   }
-  .ctl-btn.small { min-width: 46px; height: 46px; font-size: 16px; }
 
-  .sub-row {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    margin-top: 12px;
-    flex-wrap: wrap;
-    justify-content: center;
-  }
-  .chip {
-    padding: 9px 14px;
-    border-radius: 20px;
-    border: 1.5px solid #35353f;
-    background: transparent;
-    color: var(--text-dim);
-    font-size: 14px;
-    cursor: pointer;
-  }
-  .chip.on { background: var(--accent-soft); border-color: var(--accent); color: var(--text); }
-  select.chip { -webkit-appearance: none; appearance: none; padding-right: 10px; }
-
-  /* 播放器顶部工具栏 */
-  .toolbar {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 4px 16px 8px;
-    flex-shrink: 0;
+  .transport {
+    display: flex; align-items: center; justify-content: center;
+    gap: 20px; padding: 10px 0 4px;
   }
   .tbtn {
-    border: none;
-    background: var(--panel);
-    color: var(--text);
-    font-size: 14px;
-    padding: 9px 16px;
-    border-radius: 20px;
-    cursor: pointer;
+    border: none; cursor: pointer;
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    color: var(--ink-2);
+    transition: transform .12s ease, color .15s ease, background .15s ease;
+    -webkit-touch-callout: none; user-select: none;
   }
-  .tbtn:active { background: var(--panel2); }
+  .tbtn.side {
+    width: 60px; height: 60px; border-radius: 999px;
+    background: var(--panel-2);
+    border: 1px solid var(--line);
+    gap: 1px;
+  }
+  .tbtn.side svg { width: 21px; height: 21px; }
+  .tbtn.side .lbl { font-size: 9.5px; font-weight: 600; color: var(--ink-3); letter-spacing: .04em; }
+  .tbtn.side:active { transform: scale(.93); background: var(--panel-3); color: var(--ink); }
+  .tbtn.main {
+    width: 76px; height: 76px; border-radius: 999px;
+    background: linear-gradient(180deg, var(--amber-hi) 0%, var(--amber) 100%);
+    color: #241A08;
+    box-shadow: 0 12px 26px -8px rgba(226,174,92,.55), inset 0 1px 0 rgba(255,255,255,.4);
+  }
+  .tbtn.main:active { transform: scale(.95); }
+  .tbtn.main svg { width: 30px; height: 30px; }
+  #btn-play svg.i-pause { display: none; }
+  #btn-play.is-playing svg.i-play { display: none; }
+  #btn-play.is-playing svg.i-pause { display: block; }
 
-  /* 通用底部弹层 */
-  .sheet-overlay {
-    position: fixed;
-    inset: 0;
-    background: rgba(0, 0, 0, 0.55);
-    z-index: 60;
-    display: flex;
-    align-items: flex-end;
+  .tool-row {
+    display: grid; grid-template-columns: 1fr 1fr 1fr;
+    gap: 8px; padding: 10px 0 2px;
   }
-  .sheet {
-    background: var(--panel);
-    width: 100%;
-    max-width: 680px;
-    margin: 0 auto;
-    border-radius: 18px 18px 0 0;
-    padding: 10px 14px calc(18px + env(safe-area-inset-bottom));
-    max-height: 72vh;
-    overflow-y: auto;
+  .tool {
+    position: relative;
+    display: flex; align-items: center; justify-content: center; gap: 6px;
+    height: 40px; border: 1px solid var(--line); border-radius: 999px;
+    background: var(--panel-2); color: var(--ink-2);
+    font-size: 13.5px; font-weight: 600;
+    cursor: pointer; -webkit-appearance: none; appearance: none;
+    transition: background .15s ease, color .15s ease, border-color .2s ease;
   }
-  .sheet-title { font-size: 16px; font-weight: 600; text-align: center; padding: 10px 0 6px; }
-  .sheet-item {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    padding: 15px 16px;
-    border-radius: 12px;
-    font-size: 16px;
-    color: var(--text);
-    cursor: pointer;
-    margin-top: 8px;
-    background: var(--panel2);
-  }
-  .sheet-item:active { opacity: 0.8; }
-  .sheet-item .ic { font-size: 20px; }
-  .sheet-item .desc { flex: 1; text-align: left; font-size: 13.5px; color: var(--text-dim); }
-  .sheet-item.danger { color: var(--danger); }
-  .sheet-input {
-    width: 100%;
-    margin-top: 12px;
-    background: var(--panel2);
-    border: 1.5px solid #3a3a44;
-    border-radius: 12px;
-    color: var(--text);
-    font-size: 17px;
-    padding: 13px 16px;
-    outline: none;
-  }
-  .sheet-input:focus { border-color: var(--accent); }
-  .sheet-actions { display: flex; gap: 10px; margin-top: 12px; }
-  .sheet-btn {
-    flex: 1;
-    padding: 14px;
-    border: none;
-    border-radius: 12px;
-    font-size: 16px;
-    font-weight: 600;
-    cursor: pointer;
-    background: var(--panel2);
-    color: var(--text);
-  }
-  .sheet-btn.primary { background: var(--accent); color: #fff; }
-  .sheet-btn.danger { background: rgba(255, 107, 107, 0.18); color: var(--danger); }
-  .sheet-quick { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
-  .qchip {
-    flex: 1 1 30%;
-    min-width: 88px;
-    padding: 12px 0;
-    border-radius: 10px;
-    border: 1.5px solid #35353f;
+  .tool svg { width: 17px; height: 17px; }
+  .tool:active { background: var(--panel-3); color: var(--ink); }
+  .tool.on { color: var(--amber-hi); border-color: rgba(226,174,92,.4); background: var(--amber-soft); }
+  select.tool {
+    padding: 0 30px 0 8px;
+    text-align: center;
+    text-align-last: center;
     background: transparent;
-    color: var(--text);
-    font-size: 15px;
-    cursor: pointer;
   }
-  .qchip:active { background: var(--panel2); }
+  select.tool option { background: var(--panel-2); color: var(--ink); }
+  .sel-wrap { position: relative; display: flex; align-items: center; }
+  .sel-wrap select.tool { width: 100%; height: 100%; border: none; border-radius: 0; background: transparent; color: var(--ink-2); font-size: 13.5px; font-weight: 600; padding: 0 30px 0 8px; }
+  .sel-wrap::after {
+    content: ""; position: absolute; right: 15px; top: 50%;
+    width: 7px; height: 7px; margin-top: -5px;
+    border-right: 1.6px solid var(--ink-3);
+    border-bottom: 1.6px solid var(--ink-3);
+    transform: rotate(45deg);
+    pointer-events: none;
+  }
 
-  /* 书单卡片 */
-  .book-card {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    padding: 14px 16px;
-    border-radius: var(--radius);
-    background: var(--panel);
-    border: 1.5px solid #35353f;
-    cursor: pointer;
-    transition: transform 0.1s;
-    -webkit-touch-callout: none;
-    user-select: none;
-  }
-  .book-card:active { transform: scale(0.985); }
-  .book-card.current { border-color: var(--accent); }
-  .book-card .cover {
-    width: 46px; height: 46px;
-    border-radius: 12px;
-    background: var(--accent-soft);
-    display: flex; align-items: center; justify-content: center;
-    font-size: 22px;
-    flex-shrink: 0;
-  }
-  .book-card .info { flex: 1; min-width: 0; text-align: left; }
-  .book-card .info .nm { font-size: 16px; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-  .book-card .info .sub { font-size: 12.5px; color: var(--text-dim); margin-top: 3px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-  .book-card .right { flex-shrink: 0; display: flex; flex-direction: column; align-items: flex-end; gap: 4px; }
-  .book-card .right .cnt { font-size: 12.5px; color: var(--text-dim); }
-  .book-card .right .live { font-size: 11px; color: var(--accent); font-weight: 600; }
-
-  #sleep-display {
-    font-size: 14px;
-    color: var(--text);
-    background: var(--panel2);
-    padding: 9px 16px;
-    border-radius: 20px;
-    font-variant-numeric: tabular-nums;
-  }
-  #sleep-display.warn { color: #ffb35b; }
-
-  /* 定时关闭悬浮胶囊（不占按钮行） */
+  /* ---------- 悬浮：睡眠胶囊 ---------- */
   #sleep-pill {
-    position: fixed;
-    top: 60px;
-    right: 14px;
-    z-index: 45;
-    display: none;
-    align-items: center;
-    gap: 8px;
-    background: rgba(30, 30, 36, 0.95);
-    border: 1px solid #3a3a44;
-    border-radius: 20px;
-    padding: 8px 14px;
-    font-size: 14px;
+    position: fixed; top: calc(58px + env(safe-area-inset-top, 0px)); right: 12px;
+    z-index: 60;
+    display: none; align-items: center;
+    gap: 2px;
+    background: rgba(18,21,28,.92);
+    border: 1px solid var(--line-2);
+    border-radius: 999px;
+    padding: 5px;
+    font-size: 12.5px;
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    box-shadow: var(--shadow-1);
     font-variant-numeric: tabular-nums;
+    max-width: calc(100vw - 24px);
   }
   #sleep-pill.show { display: flex; }
-  #sleep-pill.warn { color: #ffb35b; border-color: #6b5327; }
-  #sp-toggle { cursor: pointer; user-select: none; }
-  #sleep-pill .sp-btn {
-    display: none;
-    border: none;
-    background: var(--panel2);
-    color: var(--text);
-    border-radius: 14px;
-    padding: 6px 11px;
-    font-size: 13px;
-    cursor: pointer;
+  #sleep-pill.warn { border-color: rgba(228,105,98,.45); }
+  .pill-main {
+    display: flex; align-items: center; gap: 7px;
+    border: none; background: transparent; color: var(--ink-2);
+    font-size: 12.5px; font-weight: 600;
+    padding: 5px 8px; border-radius: 999px; cursor: pointer;
+    font-variant-numeric: tabular-nums;
   }
-  #sleep-pill.open .sp-btn { display: inline-block; }
+  .pill-main svg { width: 16px; height: 16px; color: var(--amber); }
+  #sleep-pill.warn .pill-main svg, #sleep-pill.warn #sp-time { color: var(--danger); }
+  .pill-main .chev { width: 11px !important; height: 11px !important; color: var(--ink-3) !important; }
+  .pill-btn {
+    display: none; border: none; cursor: pointer;
+    font-size: 12.5px; font-weight: 600;
+    padding: 6px 11px; border-radius: 999px;
+    color: var(--ink-2); background: var(--panel-3);
+    transition: transform .12s ease;
+  }
+  .pill-btn:active { transform: scale(.94); }
+  #sleep-pill.open .pill-btn { display: inline-block; }
+  .pill-btn.danger { color: var(--danger); }
 
-  /* 回到当前字幕按钮 */
+  /* ---------- 悬浮：回到当前 ---------- */
   #back-to-cur {
     position: fixed;
-    right: 16px;
-    bottom: 200px;
-    z-index: 40;
+    left: 14px;
+    bottom: calc(206px + env(safe-area-inset-bottom, 0px));
+    z-index: 80;
     display: none;
-    padding: 11px 18px;
+    align-items: center; gap: 6px;
     border: none;
-    border-radius: 22px;
-    background: var(--accent);
-    color: #fff;
-    font-size: 15px;
-    font-weight: 600;
-    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.4);
+    border-radius: 999px;
+    padding: 9px 14px;
+    background: var(--panel-2);
+    border: 1px solid var(--line-2);
+    color: var(--ink-2);
+    font-size: 13px; font-weight: 600;
+    box-shadow: var(--shadow-1);
     cursor: pointer;
   }
-  #back-to-cur.show { display: block; }
+  #back-to-cur svg { width: 15px; height: 15px; }
+  #back-to-cur.show { display: flex; }
 
-  /* ---- 播放列表浮层 ---- */
-  #pl-overlay {
-    position: fixed;
-    inset: 0;
-    background: rgba(0, 0, 0, 0.55);
-    z-index: 50;
-    display: flex;
-    align-items: flex-end;
+  /* ================= 底部弹层 ================= */
+  .sheet-overlay, #pl-overlay {
+    position: fixed; inset: 0;
+    background: rgba(4,5,8,.62);
+    backdrop-filter: blur(3px);
+    -webkit-backdrop-filter: blur(3px);
+    z-index: 70;
+    display: flex; align-items: flex-end;
+    animation: fadeIn .18s ease;
   }
   #pl-overlay.hidden { display: none; }
-  #pl-panel {
-    background: var(--panel);
-    width: 100%;
-    max-width: 680px;
+  @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+  .sheet {
+    background: linear-gradient(180deg, #171B23 0%, #10131A 100%);
+    width: 100%; max-width: 680px;
     margin: 0 auto;
-    border-radius: 18px 18px 0 0;
-    max-height: 62vh;
-    display: flex;
-    flex-direction: column;
-    padding-bottom: env(safe-area-inset-bottom);
+    border-radius: 26px 26px 0 0;
+    border-top: 1px solid var(--line-2);
+    padding: 8px 18px calc(16px + env(safe-area-inset-bottom, 0px));
+    max-height: 74vh;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    animation: sheetUp .26s cubic-bezier(.2,.8,.25,1);
   }
-  #pl-head {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 16px 18px 10px;
-    font-size: 16px;
-    font-weight: 600;
-  }
-  #pl-head button {
-    border: none;
-    background: var(--panel2);
-    color: var(--text);
-    width: 36px; height: 36px;
-    border-radius: 50%;
-    font-size: 16px;
+  @keyframes sheetUp { from { transform: translateY(46px); opacity: .4; } to { transform: translateY(0); opacity: 1; } }
+  .handle { width: 42px; height: 4.5px; border-radius: 3px; background: var(--panel-3); margin: 2px auto 10px; flex-shrink: 0; }
+  .sheet-title { font-size: 17px; font-weight: 750; text-align: center; color: var(--ink); padding: 4px 0 10px; }
+  .sheet-title .sc { display: block; font-size: 12px; font-weight: 500; color: var(--ink-3); margin-top: 4px; }
+
+  .sheet-item {
+    display: flex; align-items: center; gap: 12px;
+    padding: 11px 12px;
+    border-radius: var(--r-md);
+    font-size: 15.5px; font-weight: 550; color: var(--ink);
     cursor: pointer;
+    margin-top: 6px;
+    background: transparent;
+    transition: background .15s ease;
   }
-  #pl-list { overflow-y: auto; padding: 4px 10px 16px; }
+  .sheet-item:active { background: var(--panel-2); }
+  .sheet-item + .sheet-item { margin-top: 2px; }
+  .sheet-item .ic {
+    flex-shrink: 0; width: 36px; height: 36px; border-radius: 12px;
+    display: flex; align-items: center; justify-content: center;
+    background: var(--panel-3); color: var(--ink-2);
+  }
+  .sheet-item .ic svg { width: 18px; height: 18px; }
+  .sheet-item .lbl { flex: 1; text-align: left; }
+  .sheet-item.danger .ic { background: var(--danger-soft); color: var(--danger); }
+  .sheet-item.danger .lbl { color: var(--danger); }
+  .sheet-note {
+    font-size: 13px; color: var(--ink-3); line-height: 1.7;
+    padding: 10px 4px 2px; text-align: center;
+  }
+  .sheet-input {
+    width: 100%; margin-top: 10px;
+    background: var(--panel-2);
+    border: 1px solid var(--line-2);
+    border-radius: var(--r-md);
+    color: var(--ink);
+    font-size: 16px; font-weight: 500;
+    padding: 13px 15px;
+    outline: none;
+    transition: border-color .2s ease;
+  }
+  .sheet-input:focus { border-color: var(--amber); }
+  .sheet-input::placeholder { color: var(--ink-3); }
+  .sheet-actions { display: flex; gap: 10px; margin-top: 14px; }
+  .sheet-btn {
+    flex: 1; padding: 14px;
+    border: none; border-radius: var(--r-md);
+    font-size: 15.5px; font-weight: 650;
+    cursor: pointer;
+    background: var(--panel-2); color: var(--ink-2);
+    transition: transform .12s ease, background .15s ease;
+  }
+  .sheet-btn:active { transform: scale(.98); background: var(--panel-3); }
+  .sheet-btn.primary {
+    background: linear-gradient(180deg, var(--amber-hi), var(--amber));
+    color: #241A08; font-weight: 750;
+    box-shadow: 0 8px 18px -8px rgba(226,174,92,.5);
+  }
+  .sheet-btn.danger { background: var(--danger-soft); color: var(--danger); }
+  .sheet-quick { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-top: 4px; }
+  .qchip {
+    padding: 13px 0 11px;
+    border-radius: var(--r-md);
+    border: 1px solid var(--line);
+    background: var(--panel-2); color: var(--ink-2);
+    font-size: 12px; font-weight: 600;
+    cursor: pointer;
+    font-variant-numeric: tabular-nums;
+    transition: transform .12s ease, border-color .15s ease, background .15s ease;
+  }
+  .qchip:active { transform: scale(.96); background: var(--panel-3); }
+  .qchip b { display: block; font-size: 19px; font-weight: 750; color: var(--ink); margin-bottom: 1px; }
+
+  /* ---------- 播放列表弹层 ---------- */
+  #pl-panel { display: flex; flex-direction: column; padding: 8px 12px calc(10px + env(safe-area-inset-bottom, 0px)); }
+  .pl-head {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 4px 6px 10px;
+  }
+  .pl-title { font-size: 16px; font-weight: 750; color: var(--ink); display: flex; align-items: center; gap: 8px; }
+  .pl-count { font-size: 12px; font-weight: 600; color: var(--ink-3); font-family: var(--num); }
+  .pl-x {
+    width: 36px; height: 36px; border-radius: 999px; border: none;
+    background: var(--panel-2); color: var(--ink-2);
+    display: flex; align-items: center; justify-content: center; cursor: pointer;
+    transition: background .15s ease, color .15s ease;
+  }
+  .pl-x:active { background: var(--panel-3); color: var(--ink); }
+  .pl-x svg { width: 15px; height: 15px; }
+  #pl-list { overflow-y: auto; padding: 2px 2px 8px; }
   .pl-item {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    padding: 13px 14px;
-    border-radius: 10px;
-    font-size: 15.5px;
-    color: var(--text-dim);
+    display: flex; align-items: center; gap: 10px;
+    padding: 11px 12px;
+    border-radius: var(--r-md);
+    font-size: 14.5px; font-weight: 500;
+    color: var(--ink-2);
     cursor: pointer;
     line-height: 1.4;
+    transition: background .15s ease, color .15s ease;
+    margin-bottom: 2px;
   }
-  .pl-item:active { background: var(--panel2); }
-  .pl-item .num { flex-shrink: 0; width: 26px; text-align: right; font-variant-numeric: tabular-nums; opacity: 0.7; }
-  .pl-item .nm { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-  .pl-item.current { background: var(--accent-soft); color: var(--text); font-weight: 600; }
-  .pl-item.current .num { opacity: 1; }
+  .pl-item:active { background: var(--panel-2); }
+  .pl-item .num {
+    flex-shrink: 0; width: 26px; text-align: right;
+    font-family: var(--num); font-size: 12.5px; color: var(--ink-3);
+  }
+  .pl-item .nm { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .pl-item .tag {
+    flex-shrink: 0; font-size: 10.5px; font-weight: 650; color: var(--amber-hi);
+    background: var(--amber-soft); border: 1px solid rgba(226,174,92,.25);
+    padding: 2px 7px; border-radius: 999px;
+  }
+  .pl-item .eq {
+    flex-shrink: 0; display: flex; align-items: flex-end; gap: 2px; height: 14px;
+    opacity: 0;
+  }
+  .pl-item.current { background: var(--amber-soft); color: var(--ink); font-weight: 600; }
+  .pl-item.current .eq { opacity: 1; }
+  .pl-item .eq i {
+    width: 3px; background: var(--amber); border-radius: 2px;
+    animation: eqB 1s ease-in-out infinite;
+  }
+  .pl-item .eq i:nth-child(1) { height: 8px; animation-delay: 0s; }
+  .pl-item .eq i:nth-child(2) { height: 13px; animation-delay: .18s; }
+  .pl-item .eq i:nth-child(3) { height: 6px; animation-delay: .36s; }
+  @keyframes eqB { 0%,100% { transform: scaleY(.6); } 50% { transform: scaleY(1); } }
 
+  /* ---------- toast ---------- */
   #msg {
-    position: fixed;
-    left: 50%; bottom: 130px;
+    position: fixed; left: 50%;
     transform: translateX(-50%);
-    background: rgba(30,30,36,0.95);
-    border: 1px solid #3a3a44;
-    color: var(--text);
-    font-size: 14.5px;
-    padding: 12px 20px;
-    border-radius: 12px;
-    max-width: 85vw;
+    background: rgba(26,30,39,.96);
+    border: 1px solid var(--line-2);
+    color: var(--ink);
+    font-size: 13.5px; font-weight: 500;
+    line-height: 1.6;
+    padding: 10px 16px;
+    border-radius: 999px;
+    max-width: 86vw;
     text-align: center;
-    z-index: 99;
+    z-index: 120;
     opacity: 0;
     pointer-events: none;
-    transition: opacity 0.3s;
+    transition: opacity .25s ease;
+    box-shadow: var(--shadow-1);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
   }
   #msg.show { opacity: 1; }
+
+  /* ---------- 图标基础 ---------- */
+  svg { display: block; flex-shrink: 0; }
+  .icon-btn svg { width: 21px; height: 21px; }
+
+  /* ---------- 无障碍 / 动效偏好 ---------- */
+  :focus-visible { outline: 2px solid var(--amber); outline-offset: 2px; }
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; }
+    .transcript { scroll-behavior: auto; }
+  }
+  ::-webkit-scrollbar { width: 5px; }
+  ::-webkit-scrollbar-thumb { background: var(--panel-3); border-radius: 4px; }
+
 </style>
 </head>
 <body>
 
-<header>
-  <h1>🎧 听书播放器</h1>
-  <div class="file-name" id="file-name">未选择文件</div>
-</header>
-
-<!-- 书架界面 -->
-<div id="setup">
-  <div class="tip">📚 我的书架<br><span style="font-size:13px">点书单继续听 · 长按书单可重命名或删除</span></div>
-  <div id="book-list"></div>
-  <button class="big-btn primary" id="btn-pick">＋ 新建书单（选择音频，可多选）</button>
-</div>
-
-<!-- 播放器界面 -->
-<div id="player" class="hidden">
-  <div class="toolbar">
-    <button class="tbtn" id="btn-books">📚 书架</button>
-    <button class="tbtn" id="btn-list">☰ 本集列表</button>
+<!-- 书架 -->
+<section id="setup" class="screen">
+  <header class="shelf-head">
+    <div class="shelf-titles">
+      <div class="shelf-title">我的<em>书架</em></div>
+      <div class="shelf-sub">长按书单可重命名或删除 · 进度自动记忆</div>
+    </div>
+    <button type="button" class="btn-primary" id="btn-pick">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
+      新建书单
+    </button>
+  </header>
+  <div id="shelf-list-scroll">
+    <div id="book-list" class="shelf-list"></div>
   </div>
-  <div id="subtitle-list"></div>
+</section>
 
-  <div id="controls">
-    <div class="ctl-inner">
-      <input type="range" id="seek" min="0" max="1000" value="0" step="1">
+<!-- 播放器 -->
+<section id="player" class="screen hidden">
+  <header class="ply-head">
+    <button type="button" class="icon-btn" id="btn-books" aria-label="返回书架">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>
+    </button>
+    <div class="ply-meta">
+      <div class="ply-book" id="ply-book"></div>
+      <div class="ply-file" id="file-name">未选择文件</div>
+    </div>
+    <button type="button" class="icon-btn" id="btn-list" aria-label="本集列表">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6h11M9 12h11M9 18h11"/><path d="M4.2 6h.01M4.2 12h.01M4.2 18h.01" stroke-width="2.8"/></svg>
+    </button>
+  </header>
+
+  <div id="subtitle-list" class="transcript"></div>
+
+  <div id="controls" class="dock">
+    <div class="dock-in">
+      <input type="range" id="seek" min="0" max="1000" value="0" step="1" aria-label="播放进度">
       <div class="time-row">
-        <span id="t-cur">00:00:00</span>
-        <span id="t-total">00:00:00</span>
+        <span id="t-cur">00:00</span>
+        <span id="t-total">00:00</span>
       </div>
 
-      <div class="btn-row">
-        <button class="ctl-btn" id="btn-back" title="后退 15 秒">⏪</button>
-        <button class="ctl-btn main" id="btn-play" title="播放/暂停">▶</button>
-        <button class="ctl-btn" id="btn-fwd" title="前进 15 秒">⏩</button>
+      <div class="transport">
+        <button type="button" class="tbtn side" id="btn-back" aria-label="后退 15 秒">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/></svg>
+          <span class="lbl">15秒</span>
+        </button>
+        <button type="button" class="tbtn main" id="btn-play" aria-label="播放 / 暂停">
+          <svg class="i-play" viewBox="0 0 24 24"><path fill="currentColor" d="M8 5.14v13.72a.7.7 0 0 0 1.06.6l11.1-6.86a.7.7 0 0 0 0-1.2L9.06 4.54A.7.7 0 0 0 8 5.14z"/></svg>
+          <svg class="i-pause" viewBox="0 0 24 24"><path fill="currentColor" d="M7.2 5h3.3v14H7.2zM13.5 5h3.3v14h-3.3z"/></svg>
+        </button>
+        <button type="button" class="tbtn side" id="btn-fwd" aria-label="前进 15 秒">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.13-9.36L23 10"/></svg>
+          <span class="lbl">15秒</span>
+        </button>
       </div>
 
-      <div class="sub-row">
-        <button class="chip" id="btn-srt">📄 换字幕</button>
-        <select class="chip" id="speed" title="倍速">
-          <option value="0.5">0.5x</option>
-          <option value="0.75">0.75x</option>
-          <option value="1" selected>1x</option>
-          <option value="1.25">1.25x</option>
-          <option value="1.5">1.5x</option>
-          <option value="2">2x</option>
-        </select>
-        <button class="chip" id="btn-sleep">⏰ 定时</button>
+      <div class="tool-row">
+        <button type="button" class="tool" id="btn-srt">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2.8h8.2L18.2 7v13.4a.8.8 0 0 1-.8.8H6a.8.8 0 0 1-.8-.8V3.6a.8.8 0 0 1 .8-.8z"/><path d="M13.6 2.9v4.4h4.5M9 12.5h6M9 16h4"/></svg>
+          <span>字幕</span>
+        </button>
+        <div class="sel-wrap tool">
+          <select id="speed" title="倍速" aria-label="播放倍速">
+            <option value="0.5">0.5x 慢速</option>
+            <option value="0.75">0.75x</option>
+            <option value="1" selected>1.0x 正常</option>
+            <option value="1.25">1.25x</option>
+            <option value="1.5">1.5x</option>
+            <option value="2">2.0x</option>
+          </select>
+        </div>
+        <button type="button" class="tool" id="btn-sleep">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.8A8.5 8.5 0 1 1 11.2 3a6.6 6.6 0 0 0 9.8 9.8z"/></svg>
+          <span>定时</span>
+        </button>
       </div>
     </div>
   </div>
-</div>
+</section>
 
 <!-- 定时关闭悬浮胶囊 -->
 <div id="sleep-pill">
-  <span id="sp-toggle">⏰ <span id="sp-time">30:00</span></span>
-  <button class="sp-btn" id="btn-sleep-add">+5 分钟</button>
-  <button class="sp-btn" id="btn-sleep-cancel">取消</button>
+  <button type="button" class="pill-main" id="sp-toggle">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.8A8.5 8.5 0 1 1 11.2 3a6.6 6.6 0 0 0 9.8 9.8z"/></svg>
+    <span id="sp-time">剩余 30:00</span>
+    <svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>
+  </button>
+  <button type="button" class="pill-btn" id="btn-sleep-add">+5 分钟</button>
+  <button type="button" class="pill-btn danger" id="btn-sleep-cancel">取消</button>
 </div>
 
-<!-- 播放列表浮层 -->
+<!-- 回到当前字幕 -->
+<button type="button" id="back-to-cur">
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12h6M15 12h6M12 3v6M12 15v6"/><circle cx="12" cy="12" r="2.2"/></svg>
+  <span>回到当前</span>
+</button>
+
+<!-- 播放列表弹层 -->
 <div id="pl-overlay" class="hidden">
-  <div id="pl-panel">
-    <div id="pl-head">
-      <span>☰ 播放列表</span>
-      <button id="pl-close">✕</button>
+  <div class="sheet" id="pl-panel">
+    <div class="handle"></div>
+    <div class="pl-head">
+      <span class="pl-title">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6h11M9 12h11M9 18h11"/><path d="M4.2 6h.01M4.2 12h.01M4.2 18h.01" stroke-width="2.8"/></svg>
+        播放列表
+      </span>
+      <span class="pl-count" id="pl-count"></span>
+      <button type="button" class="pl-x" id="pl-close" aria-label="关闭">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 6L6 18M6 6l12 12"/></svg>
+      </button>
     </div>
     <div id="pl-list"></div>
   </div>
 </div>
 
-<button id="back-to-cur">↩ 回到当前</button>
-
-<div id="msg"></div>
+<div id="msg" role="status"></div>
 
 <!-- 隐藏的文件选择器 -->
 <input type="file" id="input-audio" accept="audio/*,.mp3,.m4a,.aac,.wav,.flac,.ogg,.opus" multiple hidden>
@@ -584,7 +738,7 @@
   // ---------- DOM ----------
   var $ = function (id) { return document.getElementById(id); };
   var elSetup = $("setup"), elPlayer = $("player");
-  var elFileName = $("file-name");
+  var elFileName = $("file-name"), elPlyBook = $("ply-book");
   var btnPick = $("btn-pick");
   var inputAudio = $("input-audio"), inputSrt = $("input-srt");
   var list = $("subtitle-list");
@@ -599,10 +753,25 @@
 
   // ---------- 工具 ----------
   var msgTimer = null;
+
+  var SVG = {
+    pencil: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>',
+    trash: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><path d="M10 11v6M14 11v6"/></svg>',
+    doc: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2.8h8.2L18.2 7v13.4a.8.8 0 0 1-.8.8H6a.8.8 0 0 1-.8-.8V3.6a.8.8 0 0 1 .8-.8z"/><path d="M13.6 2.9v4.4h4.5M9 12.5h6M9 16h4"/></svg>',
+    book: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 6.4C10.6 5 8.5 4.3 5.6 4.3c-.7 0-1.4.1-1.4.4v13.2c0 .3.7.4 1.4.4 2.9 0 5 .7 6.4 2.1 1.4-1.4 3.5-2.1 6.4-2.1.7 0 1.4-.1 1.4-.4V4.7c0-.3-.7-.4-1.4-.4-2.9 0-5 .7-6.4 2.1z"/><path d="M12 6.4v13.8"/></svg>'
+  };
+
+  function setPlayBtn(on) { btnPlay.classList.toggle("is-playing", !!on); }
   function showMsg(text, ms) {
     var m = $("msg");
     m.textContent = text;
     m.classList.add("show");
+    var dock = $("controls"), base = 24;
+    if (dock && dock.offsetParent !== null) {
+      var r = dock.getBoundingClientRect();
+      base = Math.max(24, window.innerHeight - r.top + 10);
+    }
+    m.style.bottom = base + "px";
     clearTimeout(msgTimer);
     msgTimer = setTimeout(function () { m.classList.remove("show"); }, ms || 2600);
   }
@@ -611,7 +780,7 @@
   function openSheet(html) {
     var ov = document.createElement("div");
     ov.className = "sheet-overlay";
-    ov.innerHTML = '<div class="sheet">' + html + "</div>";
+    ov.innerHTML = '<div class="sheet"><div class="handle"></div>' + html + "</div>";
     document.body.appendChild(ov);
     ov.addEventListener("click", function (e) {
       if (e.target === ov) ov.close();
@@ -702,7 +871,20 @@
   // ---------- 字幕渲染 ----------
   function renderSubtitles() {
     list.innerHTML = "";
-    if (!cues.length) return;
+    if (!cues.length) {
+      if (audio.getAttribute("src")) {
+        var h = document.createElement("div");
+        h.className = "cue-hint";
+        h.innerHTML = '<div class="ch-ic">' + SVG.doc + "</div>" +
+          '<div class="ch-t">暂无字幕</div>' +
+          '<div class="ch-d">选择与音频同名的 .srt 文件，<br>即可点任意句子跳转播放。</div>' +
+          '<button type="button" class="btn-ghost" id="btn-srt-empty">选择字幕文件</button>';
+        list.appendChild(h);
+        var be = h.querySelector("#btn-srt-empty");
+        if (be) be.addEventListener("click", function () { inputSrt.click(); });
+      }
+      return;
+    }
     var frag = document.createDocumentFragment();
     cues.forEach(function (c, i) {
       var div = document.createElement("div");
@@ -912,32 +1094,55 @@
     });
   }
 
+  var COVER_BG = [
+    "linear-gradient(160deg,#3A4155 0%,#232838 100%)",
+    "linear-gradient(160deg,#4A4250 0%,#2A2431 100%)",
+    "linear-gradient(160deg,#3C4A43 0%,#232D28 100%)",
+    "linear-gradient(160deg,#4A3E45 0%,#2A2226 100%)",
+    "linear-gradient(160deg,#44463E 0%,#282A24 100%)"
+  ];
+
   function renderBookList() {
     var el = $("book-list");
     el.innerHTML = "";
-    var lastId = 0;
-    try { lastId = parseInt(localStorage.getItem("tl_lastbook") || "0", 10) || 0; } catch (e) {}
+    if (!books.length) {
+      el.innerHTML =
+        '<div class="empty-state">' +
+          '<div class="es-ic">' + SVG.book + "</div>" +
+          '<p class="es-t">书架还是空的</p>' +
+          '<p class="es-d">导入一本书的音频（可以一次多选几集），<br>同名的 .srt 字幕会自动配对。</p>' +
+          '<button type="button" class="btn-primary" id="es-add">新建第一个书单</button>' +
+        "</div>";
+      var eb = $("es-add");
+      if (eb) eb.addEventListener("click", function () { btnPick.click(); });
+      return;
+    }
     var frag = document.createDocumentFragment();
     books.forEach(function (b) {
       var card = document.createElement("div");
       card.className = "book-card" + (b.id === curBookId ? " current" : "");
-      var sub = "还没听过";
       var cnt = bookCount[b.id] || 0;
+      var posIdx = -1, pct = 0, posText = "共 " + cnt + " 集 · 还没开始听";
       try {
         var pos = JSON.parse(localStorage.getItem("tl_bookpos_" + b.id) || "null");
         if (pos && pos.i >= 0 && allTracks[b.id] && allTracks[b.id][pos.i]) {
+          posIdx = pos.i;
           var t = allTracks[b.id][pos.i];
           var pr = JSON.parse(localStorage.getItem(saveKey(t.base)) || "null");
-          var pct = pr && pr.d ? Math.min(100, Math.round(pr.t / pr.d * 100)) : 0;
-          sub = "听到第 " + (pos.i + 1) + " 集" + (pct ? " · " + pct + "%" : "");
+          pct = pr && pr.d ? Math.min(100, Math.round(pr.t / pr.d * 100)) : 0;
+          posText = (posIdx + 1) + " / " + cnt + " 集" + (pct ? " · 已听 " + pct + "%" : "");
         }
       } catch (e) {}
+      var ch = ((b.name || "").replace(/^\s+/, "").charAt(0) || "书");
+      var ci = Math.abs((b.id || 0)) % COVER_BG.length;
       card.innerHTML =
-        '<span class="cover">📖</span>' +
-        '<span class="info"><div class="nm">' + escapeHtml(b.name) + "</div>" +
-        '<div class="sub">' + sub + "</div></span>" +
-        '<span class="right"><span class="cnt">' + cnt + " 集</span>" +
-        (b.id === curBookId ? '<span class="live">▶ 正在播</span>' : "") + "</span>";
+        '<span class="cover" style="background:' + COVER_BG[ci] + '"><b>' + escapeHtml(ch) + "</b></span>" +
+        '<span class="info">' +
+          '<span class="nm">' + escapeHtml(b.name) + "</span>" +
+          '<span class="meta"><i class="dot' + (b.id === curBookId ? " live" : "") + '"></i>' + posText + "</span>" +
+          (pct > 0 ? '<span class="prog"><i style="width:' + pct + '%"></i></span>' : "") +
+        "</span>" +
+        (b.id === curBookId ? '<span class="live-tag"><i></i>播放中</span>' : "");
       var lpTimer = null, lpFired = false;
       card.addEventListener("click", function () {
         if (lpFired) { lpFired = false; return; }
@@ -966,8 +1171,8 @@
   function bookManage(b) {
     var ov = openSheet(
       '<div class="sheet-title">' + escapeHtml(b.name) + "</div>" +
-      '<div class="sheet-item"><span class="ic">✏️</span><span>重命名</span></div>' +
-      '<div class="sheet-item danger"><span class="ic">🗑️</span><span>删除书单</span></div>'
+      '<div class="sheet-item"><span class="ic">' + SVG.pencil + "</span><span class='lbl'>重命名</span></div>" +
+      '<div class="sheet-item danger"><span class="ic">' + SVG.trash + "</span><span class='lbl'>删除书单</span></div>"
     );
     var items = ov.querySelectorAll(".sheet-item");
     items[0].addEventListener("click", function () {
@@ -988,7 +1193,7 @@
   function confirmDelete(b) {
     var ov = openSheet(
       '<div class="sheet-title">删除「' + escapeHtml(b.name) + '」？</div>' +
-      '<div class="sheet-item" style="background:transparent;padding:4px 16px;"><span class="desc">该书单的所有音频和进度将无法恢复。</span></div>' +
+      '<div class="sheet-note">删除后，该书单里的所有音频与收听进度都会一并清除，无法恢复。</div>' +
       '<div class="sheet-actions">' +
         '<button class="sheet-btn" id="dcancel">再想想</button>' +
         '<button class="sheet-btn danger" id="dok">删除</button>' +
@@ -1116,7 +1321,8 @@
       }
     } catch (e) {}
     try { localStorage.setItem("tl_bookpos_" + curBookId, JSON.stringify({ i: i })); } catch (e) {}
-    elFileName.textContent = "《" + curBookName + "》" + (i + 1) + "/" + tracks.length + " · " + t.name;
+    elFileName.textContent = t.name;
+    elPlyBook.textContent = "《" + curBookName + "》 · 第 " + (i + 1) + " / " + tracks.length + " 集";
     // 自动配对同名字幕
     cues = srtMap[t.base] || [];
     activeIdx = -1;
@@ -1143,7 +1349,7 @@
     if (curTrack < tracks.length - 1) {
       playTrack(curTrack + 1);
     } else {
-      btnPlay.textContent = "▶";
+      setPlayBtn(false);
       showMsg("播放列表已播完");
     }
   });
@@ -1155,7 +1361,11 @@
     tracks.forEach(function (t, i) {
       var div = document.createElement("div");
       div.className = "pl-item";
-      div.innerHTML = '<span class="num">' + (i + 1) + '</span><span class="nm">' + (srtMap[t.base] ? "📄 " : "▫ ") + escapeHtml(t.name) + "</span>";
+      div.innerHTML =
+        '<span class="num">' + (i + 1) + "</span>" +
+        '<span class="nm">' + escapeHtml(t.name) + "</span>" +
+        (srtMap[t.base] ? '<span class="tag">字幕</span>' : "") +
+        '<span class="eq"><i></i><i></i><i></i></span>';
       div.addEventListener("click", function () {
         playTrack(i);
         plOverlay.classList.add("hidden");
@@ -1176,6 +1386,8 @@
   $("btn-list").addEventListener("click", function () {
     if (!tracks.length) { showMsg("播放列表为空"); return; }
     plOverlay.classList.remove("hidden");
+    var pc = $("pl-count");
+    if (pc) pc.textContent = tracks.length + " 集";
     var cur = plList.children[curTrack];
     if (cur && cur.scrollIntoView) cur.scrollIntoView({ block: "center" });
   });
@@ -1226,7 +1438,7 @@
           } else if (pairCount > 0) {
             showMsg("已加载 " + okCount + " 个字幕，其中 " + pairCount + " 个与音频同名配对成功");
           } else {
-            showMsg("已加载 " + okCount + " 个字幕，但没有一个和音频文件同名，可到「☰ 列表」确认");
+            showMsg("已加载 " + okCount + " 个字幕，但没有一个和音频同名，可点右上角列表查看");
           }
         }
       };
@@ -1242,8 +1454,8 @@
     if (!audio.src) return;
     audio.paused ? audio.play() : audio.pause();
   });
-  audio.addEventListener("play", function () { btnPlay.textContent = "⏸"; });
-  audio.addEventListener("pause", function () { btnPlay.textContent = "▶"; saveProgress(); });
+  audio.addEventListener("play", function () { setPlayBtn(true); });
+  audio.addEventListener("pause", function () { setPlayBtn(false); saveProgress(); });
 
   $("btn-back").addEventListener("click", function () { audio.currentTime = Math.max(0, audio.currentTime - 15); });
   $("btn-fwd").addEventListener("click", function () { audio.currentTime = Math.min(audio.duration || 0, audio.currentTime + 15); });
@@ -1290,7 +1502,7 @@
       pendingResume = null;
     }
   });
-  audio.addEventListener("ended", function () { btnPlay.textContent = "▶"; });
+  audio.addEventListener("ended", function () { setPlayBtn(false); });
   audio.addEventListener("error", function () {
     if (audio.src) showMsg("音频无法播放，可能是浏览器不支持该格式，建议用 mp3 / m4a / wav");
   });
@@ -1309,9 +1521,11 @@
   function updateSleepUI(remaining) {
     if (remaining <= 0) {
       sleepPill.classList.remove("show", "open", "warn");
+      btnSleep.classList.remove("on");
       return;
     }
     sleepPill.classList.add("show");
+    btnSleep.classList.add("on");
     var mins = Math.floor(remaining / 60000);
     var secs = Math.floor(remaining % 60000 / 1000);
     spTime.textContent = "剩余 " + mins + ":" + (secs < 10 ? "0" : "") + secs;
@@ -1336,7 +1550,7 @@
       if (remaining <= 0) {
         audio.pause();
         stopSleep();
-        showMsg("⏰ 定时时间到，已暂停播放");
+        showMsg("定时时间到，已暂停播放");
         return;
       }
       updateSleepUI(remaining);
@@ -1354,10 +1568,10 @@
 
   btnSleep.addEventListener("click", function () {
     var ov = openSheet(
-      '<div class="sheet-title">⏰ 定时关闭</div>' +
+      '<div class="sheet-title">定时关闭<span class="sc">到点自动暂停，适合伴睡</span></div>' +
       '<div class="sheet-quick">' +
         [15, 30, 45, 60].map(function (m) {
-          return '<button class="qchip" data-m="' + m + '">' + m + " 分钟</button>";
+          return '<button class="qchip" data-m="' + m + '"><b>' + m + '</b>分钟</button>';
         }).join("") +
       "</div>" +
       '<input class="sheet-input" id="sinput" type="number" inputmode="numeric" placeholder="或输入自定义分钟数" value="30">' +
